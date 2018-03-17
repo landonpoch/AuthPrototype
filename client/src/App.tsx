@@ -12,20 +12,26 @@ window['OidcClient'] = OidcClient;
 
 const logo = require('./logo.svg');
 
-interface Props {
-
-}
-
 interface State {
     user?: { username: string; };
 }
 
-class App extends React.Component<Props, State> {
+class App extends React.Component<{}, State> {
     private client: OidcClient;
 
     constructor(props: {}) {
         super(props);
         this.state = { user: undefined };
+        fetch(`https://localhost:8443/`)
+            .then(response => response.text())
+            .then(body => {
+                // tslint:disable-next-line:no-console
+                console.log(body);
+            })
+            .catch(err => {
+                // tslint:disable-next-line:no-console
+                console.log(err);
+            });
     }
 
     render() {
@@ -74,6 +80,13 @@ class App extends React.Component<Props, State> {
                 this.setState({ user: { username: response.profile.name }});
                 // tslint:disable-next-line:no-console
                 console.log(response);
+                fetch('https://localhost:8443/', { 
+                    method: 'POST',
+                    body: JSON.stringify({ token: response.id_token }),
+                    headers: new Headers({
+                        'Content-Type': 'application/json'
+                    })
+                });
             }).catch(err => {
                 // tslint:disable-next-line:no-console
                 console.log(err);
@@ -84,8 +97,8 @@ class App extends React.Component<Props, State> {
         return this.client = this.client || new OidcClient({
             authority: 'https://accounts.google.com',
             client_id: '832067986394-it9obigmu3qnemg0em02pocq4q4e1gd8.apps.googleusercontent.com',
-            redirect_uri: 'http://localhost:3000/loginhandler',
-            post_logout_redirect_uri: 'http://localhost:3000/',
+            redirect_uri: 'https://localhost:3000/loginhandler',
+            post_logout_redirect_uri: 'https://localhost:3000/',
             response_type: 'id_token token',
             scope: 'openid https://www.googleapis.com/auth/plus.login profile',
             filterProtocolClaims: true,
