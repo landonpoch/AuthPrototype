@@ -84,6 +84,8 @@ interface JwtPayload {
     /** Access Token hash value */
     at_hash?: string; // "RXRmkFRXShjP4nvymUmskw",
     locale?: string; // "en"
+    email?: string;
+    email_verified?: boolean;
 }
 
 interface IssuerMap {
@@ -120,7 +122,11 @@ const isValidToken = (token: string): Promise<JwtPayload> => {
 
 const hasValidSignature = (token: string, header: JwtHeader, jwksUri: string): Promise<JwtPayload> => {
     return new Promise<jwks.Jwk>((resolve, reject) => {
-        jwks({ jwksUri: jwksUri }).getSigningKey(header.kid, (err, key) => {
+        jwks({
+            jwksUri: jwksUri,
+            cache: true,
+            rateLimit: true,
+        }).getSigningKey(header.kid, (err, key) => {
             if (err) return reject(err);
             resolve(key);
         });

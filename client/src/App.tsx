@@ -100,7 +100,7 @@ class App extends React.Component<{}, State> {
             redirect_uri: 'https://localhost:3000/loginhandler',
             post_logout_redirect_uri: 'https://localhost:3000/',
             response_type: 'id_token token',
-            scope: 'openid https://www.googleapis.com/auth/plus.login profile',
+            scope: 'openid profile email',
             filterProtocolClaims: true,
             loadUserInfo: true,
         });
