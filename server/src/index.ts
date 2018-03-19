@@ -3,7 +3,7 @@ import http from "http";
 import https from "https";
 import express from "express";
 import bodyParser from "body-parser";
-import { isValidToken, registerIssuer } from "./auth/jwtValidator";
+import { jwtValidator, registerIssuer } from "./auth/jwtValidator";
 import { googleIssuerKey, GoogleConfig } from "./auth/googleJwt"
 
 const app = express();
@@ -22,17 +22,12 @@ app.options("/", (req, res) => {
     res.send("");
 });
 
-// TODO: Update endpoint path to be something related to authentication
-app.post("/", (req, res) => {
-    const now = Date.now();
-    isValidToken(req.body.token)
-        .then(response => {
-            console.log(`jwt validation duration: ${Date.now() - now}`)
-            console.log(`Decoded token: ${JSON.stringify(response, undefined, 4)}`);
-        })
-        .catch(err => {
-            console.log(err);
-        });
+// TODO: Investigate best practices for scoping protected endpoints.
+// Sample protected endpoint
+app.post("/", jwtValidator, (req, res) => {
+    res.write("Protected resource reached.");
+    res.status(200);
+    res.end();
 });
 
 registerIssuer(googleIssuerKey, new GoogleConfig());

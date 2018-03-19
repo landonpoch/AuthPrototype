@@ -1,4 +1,5 @@
 
+import { RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import jwks from "jwks-rsa";
 import { filter, first } from "lodash";
@@ -60,6 +61,26 @@ const registerIssuer = (iss: string, config : IssuerConfig): void => {
     issuerMap[iss] = config;
 }
 
+const jwtValidator: RequestHandler = (req, res, next) => {
+    const now = Date.now();
+    isValidToken(req.body.token)
+        .then(response => {
+            console.log(`jwt validation duration: ${Date.now() - now}`)
+            console.log(response);
+
+            // TODO: Ensure user in database in modular fashion
+            
+            next();
+        })
+        .catch(err => {
+            console.log(err);
+            
+            res.status(401);
+            res.setHeader("WWW-Authenticate", "Bearer");
+            res.end();
+        });
+}
+
 const isValidToken = (token: string): Promise<JwtPayload> => {
     const { header, payload } = decodeJwt(token);
     const issuerConfig = issuerMap[payload.iss];
@@ -101,4 +122,4 @@ const decodeJwt = (token: string): Jwt => {
     throw "Unable to decode JWT";
 };
 
-export { isValidToken, registerIssuer };
+export { jwtValidator, registerIssuer };
