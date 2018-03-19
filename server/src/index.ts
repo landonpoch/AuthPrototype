@@ -4,7 +4,7 @@ import https from "https";
 import express from "express";
 import bodyParser from "body-parser";
 import { jwtValidator, registerIssuer } from "./auth/jwtValidator";
-import { googleIssuerKey, GoogleConfig } from "./auth/googleJwt"
+import { googleIssuerKey, GoogleConfig } from "./auth/googleJwt";
 
 const app = express();
 
@@ -26,6 +26,9 @@ app.options("/token/test", (req, res) => {
 });
 
 app.post("/token/test", (req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Headers", "*");
+
     res.write("Protected resource reached.");
     res.status(200);
     res.end();
