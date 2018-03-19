@@ -62,8 +62,21 @@ const registerIssuer = (iss: string, config : IssuerConfig): void => {
 }
 
 const jwtValidator: RequestHandler = (req, res, next) => {
+    if (req.method === "OPTIONS") return next();
+
+    const denyAccess = () => {
+        res.status(401);
+        res.setHeader("WWW-Authenticate", "Bearer");
+        res.end();
+    }
+
     const now = Date.now();
-    isValidToken(req.body.token)
+    const authHeader = req.header("Authorization")
+    if (!authHeader) return denyAccess();
+    const [authType, token] = authHeader.split(" ");
+    if (authType != "Bearer") return denyAccess();
+    
+    isValidToken(token)
         .then(response => {
             console.log(`jwt validation duration: ${Date.now() - now}`)
             console.log(response);
@@ -74,10 +87,7 @@ const jwtValidator: RequestHandler = (req, res, next) => {
         })
         .catch(err => {
             console.log(err);
-            
-            res.status(401);
-            res.setHeader("WWW-Authenticate", "Bearer");
-            res.end();
+            denyAccess();
         });
 }
 

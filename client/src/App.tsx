@@ -80,11 +80,11 @@ class App extends React.Component<{}, State> {
                 this.setState({ user: { username: response.profile.name }});
                 // tslint:disable-next-line:no-console
                 console.log(response);
-                fetch('https://localhost:8443/', { 
+                fetch('https://localhost:8443/token/test', { 
                     method: 'POST',
-                    body: JSON.stringify({ token: response.id_token }),
                     headers: new Headers({
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${response.id_token}`
                     })
                 });
             }).catch(err => {

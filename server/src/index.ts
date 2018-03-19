@@ -11,20 +11,21 @@ const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Protect everything under the /token path
+app.use("/token", jwtValidator);
+
 app.get("/", (req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.send("hello world");
 });
 
-app.options("/", (req, res) => {
+app.options("/token/test", (req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Headers", "*");
     res.send("");
 });
 
-// TODO: Investigate best practices for scoping protected endpoints.
-// Sample protected endpoint
-app.post("/", jwtValidator, (req, res) => {
+app.post("/token/test", (req, res) => {
     res.write("Protected resource reached.");
     res.status(200);
     res.end();
