@@ -6,6 +6,7 @@ interface Props {
         username: string;
     };
     onCreateSignInRequest: (args?: {}) => void;
+    onCreateSignOutRequest: () => void;
 }
 
 // tslint:disable-next-line:no-any
@@ -20,8 +21,11 @@ class Login extends React.Component<Props, {}> {
         return (
             <h3>{
                 this.props.user ?
-                    this.props.user.username :
-                    <button onClick={this.props.onCreateSignInRequest}>Login</button>
+                    <div>
+                        <p>{this.props.user.username}</p>
+                        <a href="#" onClick={this.props.onCreateSignOutRequest}>Logout</a>
+                    </div> :
+                    <a href="#" onClick={this.props.onCreateSignInRequest}>Login</a>
             }</h3>
         );
     }

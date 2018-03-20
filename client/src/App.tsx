@@ -2,7 +2,8 @@ import * as React from 'react';
 import { BrowserRouter as Router, Route, NavLink } from 'react-router-dom';
 import Home from './components/Home';
 import Login from './components/Login';
-import LoginHandler from './components/LoginHandler';
+import SigninHandler from './components/SigninHandler';
+import SignoutHandler from './components/SignoutHandler';
 import Protected from './components/Protected';
 import './App.css';
 import { OidcClient } from 'oidc-client';
@@ -61,23 +62,23 @@ class App extends React.Component<{}, State> {
                         <img src={logo} className="App-logo" alt="logo" />
                         <h1 className="App-title">Welcome to React</h1>
                     </header>
-                    <ul>
-                        <li><NavLink to="/">Home</NavLink></li>
-                        <li><NavLink to="/login">Login</NavLink></li>
-                        <li><NavLink to="/protected">Protected</NavLink></li>
-                        <li><a href="#" onClick={this.removeUserState}>Remove User State</a></li>
-                    </ul>
+                    <Login 
+                        user={this.state.user}
+                        onCreateSignInRequest={this.onCreateSignInRequest}
+                        onCreateSignOutRequest={this.onCreateSignOutRequest}
+                    />
+                    <NavLink to="/">Home</NavLink>
+                    <NavLink to="/protected">Protected</NavLink>
                     
                     <Route exact={true} path="/" component={Home} />
                     <Route path="/protected" component={Protected} />
                     <Route 
-                        path="/login" 
-                        render={props => 
-                        <Login user={this.state.user} onCreateSignInRequest={this.onCreateSignInRequest} />}
+                        path="/signinhandler" 
+                        render={props => <SigninHandler onProcessSigninResponse={this.onProcessSigninResponse} />} 
                     />
                     <Route 
-                        path="/loginhandler" 
-                        render={props => <LoginHandler onProcessSigninResponse={this.onProcessSigninResponse} />} 
+                        path="/signouthandler" 
+                        render={props => <SignoutHandler onProcessSignoutResponse={this.onProcessSignoutResponse} />} 
                     />
                 </div>
             </Router>
@@ -95,7 +96,7 @@ class App extends React.Component<{}, State> {
     }
 
     private onProcessSigninResponse = () => {
-        this.getOidcClient().processSigninResponse()
+        return this.getOidcClient().processSigninResponse()
             .then((response: OidcResponse) => {
                 
                 // tslint:disable-next-line:no-console
@@ -107,9 +108,13 @@ class App extends React.Component<{}, State> {
                 localStorage.setItem('exp', JSON.stringify(response.expires_at));
                 this.initUserState();
 
-                fetch('https://localhost:8443/token/test', { 
+                return fetch('https://localhost:8443/token/test', { 
                     method: 'GET',
                     headers: new Headers({ 'Authorization': `Bearer ${response.id_token}` }),
+                }).then(r => r.text())
+                .then(text => {
+                    // tslint:disable-next-line:no-console
+                    console.log(text);
                 });
             }).catch(err => {
                 // tslint:disable-next-line:no-console
@@ -121,12 +126,22 @@ class App extends React.Component<{}, State> {
         return this.client = this.client || new OidcClient({
             authority: 'https://accounts.google.com',
             client_id: '832067986394-it9obigmu3qnemg0em02pocq4q4e1gd8.apps.googleusercontent.com',
-            redirect_uri: 'https://localhost:3000/loginhandler',
-            post_logout_redirect_uri: 'https://localhost:3000/',
+            redirect_uri: 'https://localhost:3000/signinhandler',
+            // post_logout_redirect_uri: 'https://localhost:3000/signouthandler',
             response_type: 'id_token token',
             scope: 'openid profile email',
             filterProtocolClaims: true,
             loadUserInfo: true,
+            // TODO: Find out if there is a way to auto populate metadata based on the wellknown url
+            // https://accounts.google.com/.well-known/openid-configuration
+            metadata: {
+                authorization_endpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+                issuer: 'https://accounts.google.com',
+                jwks_uri: 'https://www.googleapis.com/oauth2/v3/certs',
+                userinfo_endpoint: 'https://www.googleapis.com/oauth2/v3/userinfo',
+                end_session_endpoint:
+                'https://www.google.com/accounts/Logout?continue=https://appengine.google.com/_ah/logout'
+            }
         });
     }
 
@@ -140,15 +155,34 @@ class App extends React.Component<{}, State> {
         const exp = localStorage.getItem('exp');
         if (exp) {
             const expiresInMs = ((JSON.parse(exp) as number) * 1000) - Date.now();
-            setTimeout(this.removeUserState, expiresInMs);
+            setTimeout(this.createSignOutRequest, expiresInMs);
         }
     }
 
-    private removeUserState = () => {
-        localStorage.removeItem('id_token');
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('profile');
-        this.setState({ user: undefined });
+    private onProcessSignoutResponse = () => {
+        return this.getOidcClient().processSignoutResponse()
+            .then(response => {
+                // tslint:disable-next-line:no-console
+                console.log(response);
+                localStorage.removeItem('id_token');
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('profile');
+                this.setState({ user: undefined });
+            });
+    }
+
+    private onCreateSignOutRequest = () => {
+        return this.createSignOutRequest();
+    }
+
+    private createSignOutRequest = () => {
+        return this.getOidcClient()
+            .createSignoutRequest()
+            .then(response => {
+                // tslint:disable-next-line:no-console
+                console.log(response);
+                location.replace(`${response.url}?continue=https://localhost:3000/signouthandler`);
+            });
     }
 }
 
