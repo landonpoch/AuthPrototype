@@ -20,18 +20,14 @@ app.get("/", (req, res) => {
 });
 
 app.options("/token/test", (req, res) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Headers", "*");
-    res.send("");
+    res.setHeader("Access-Control-Allow-Origin", "https://localhost:3000");
+    res.setHeader("Access-Control-Allow-Headers", "authorization");
+    res.sendStatus(200);
 });
 
-app.post("/token/test", (req, res) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Headers", "*");
-
-    res.write("Protected resource reached.");
-    res.status(200);
-    res.end();
+app.get("/token/test", (req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "https://localhost:3000");
+    res.send("Protected resource reached.");
 });
 
 registerIssuer(googleIssuerKey, new GoogleConfig());

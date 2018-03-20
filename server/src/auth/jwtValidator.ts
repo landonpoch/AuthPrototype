@@ -71,14 +71,14 @@ const jwtValidator: RequestHandler = (req, res, next) => {
     }
 
     const now = Date.now();
-    const authHeader = req.header("Authorization")
+    const authHeader = req.get("authorization");
     if (!authHeader) return denyAccess();
     const [authType, token] = authHeader.split(" ");
     if (authType != "Bearer") return denyAccess();
     
     isValidToken(token)
         .then(response => {
-            console.log(`jwt validation duration: ${Date.now() - now}`)
+            console.log(`jwt validation duration: ${Date.now() - now}`);
             console.log(response);
 
             // TODO: Ensure user in database in modular fashion

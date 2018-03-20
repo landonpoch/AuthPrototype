@@ -16,22 +16,41 @@ interface State {
     user?: { username: string; };
 }
 
+interface OidcResponse {
+    state?: {};
+    id_token: string;
+    session_state: string;
+    access_token: string;
+    token_type: 'Bearer';
+    profile: OidcClaims;
+    expires_at: number;
+}
+
+interface OidcClaims {
+    azp: string;
+    sub: string;
+    email: string;
+    email_verified?: boolean;
+    jti: string;
+    name: string;
+    picture: string[];
+    given_name: string;
+    family_name: string;
+    locale: string;
+    profile: string;
+    gender: string;
+}
+
 class App extends React.Component<{}, State> {
     private client: OidcClient;
 
     constructor(props: {}) {
         super(props);
         this.state = { user: undefined };
-        fetch(`https://localhost:8443/`)
-            .then(response => response.text())
-            .then(body => {
-                // tslint:disable-next-line:no-console
-                console.log(body);
-            })
-            .catch(err => {
-                // tslint:disable-next-line:no-console
-                console.log(err);
-            });
+    }
+
+    componentWillMount() {
+        this.initUserState();
     }
 
     render() {
@@ -46,6 +65,7 @@ class App extends React.Component<{}, State> {
                         <li><NavLink to="/">Home</NavLink></li>
                         <li><NavLink to="/login">Login</NavLink></li>
                         <li><NavLink to="/protected">Protected</NavLink></li>
+                        <li><a href="#" onClick={this.removeUserState}>Remove User State</a></li>
                     </ul>
                     
                     <Route exact={true} path="/" component={Home} />
@@ -76,16 +96,20 @@ class App extends React.Component<{}, State> {
 
     private onProcessSigninResponse = () => {
         this.getOidcClient().processSigninResponse()
-            .then(response => {
-                this.setState({ user: { username: response.profile.name }});
+            .then((response: OidcResponse) => {
+                
                 // tslint:disable-next-line:no-console
                 console.log(response);
+                
+                localStorage.setItem('id_token', response.id_token);
+                localStorage.setItem('access_token', response.access_token);
+                localStorage.setItem('profile', JSON.stringify(response.profile));
+                localStorage.setItem('exp', JSON.stringify(response.expires_at));
+                this.initUserState();
+
                 fetch('https://localhost:8443/token/test', { 
-                    method: 'POST',
-                    headers: new Headers({
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${response.id_token}`
-                    })
+                    method: 'GET',
+                    headers: new Headers({ 'Authorization': `Bearer ${response.id_token}` }),
                 });
             }).catch(err => {
                 // tslint:disable-next-line:no-console
@@ -104,6 +128,27 @@ class App extends React.Component<{}, State> {
             filterProtocolClaims: true,
             loadUserInfo: true,
         });
+    }
+
+    private initUserState = () => {
+        const profileStr = localStorage.getItem('profile');
+        if (profileStr) {
+            const profile = JSON.parse(profileStr) as OidcClaims;
+            this.setState({ user: { username: profile.name }});
+        }
+
+        const exp = localStorage.getItem('exp');
+        if (exp) {
+            const expiresInMs = ((JSON.parse(exp) as number) * 1000) - Date.now();
+            setTimeout(this.removeUserState, expiresInMs);
+        }
+    }
+
+    private removeUserState = () => {
+        localStorage.removeItem('id_token');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('profile');
+        this.setState({ user: undefined });
     }
 }
 
