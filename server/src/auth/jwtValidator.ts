@@ -57,9 +57,9 @@ export interface IssuerConfig {
     getJwksClient: () => Promise<jwks.JwksClient>;
 }
 const issuerMap: IssuerMap = {};
-const registerIssuer = (iss: string, config : IssuerConfig): void => {
+const registerIssuer = (iss: string, config: IssuerConfig): void => {
     issuerMap[iss] = config;
-}
+};
 
 const jwtValidator: RequestHandler = (req, res, next) => {
     if (req.method === "OPTIONS") return next();
@@ -68,34 +68,34 @@ const jwtValidator: RequestHandler = (req, res, next) => {
         res.status(401);
         res.setHeader("WWW-Authenticate", "Bearer");
         res.end();
-    }
+    };
 
     const now = Date.now();
     const authHeader = req.get("authorization");
     if (!authHeader) return denyAccess();
     const [authType, token] = authHeader.split(" ");
-    if (authType != "Bearer") return denyAccess();
-    
+    if (authType !== "Bearer") return denyAccess();
+
     isValidToken(token)
         .then(response => {
             console.log(`jwt validation duration: ${Date.now() - now}`);
             console.log(response);
 
             // TODO: Ensure user in database in modular fashion
-            
+
             next();
         })
         .catch(err => {
             console.log(err);
             denyAccess();
         });
-}
+};
 
 const isValidToken = (token: string): Promise<JwtPayload> => {
     const { header, payload } = decodeJwt(token);
     const issuerConfig = issuerMap[payload.iss];
     if (!issuerConfig) throw "JWT issuer not supported";
-    
+
     const { clientId, getJwksClient } = issuerConfig;
     return getJwksClient()
         .then(client => hasValidSignature(token, header, client))

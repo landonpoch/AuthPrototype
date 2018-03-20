@@ -5,7 +5,7 @@ import { IssuerConfig, registerIssuer } from "./jwtValidator";
 const googleIssuerKey = "https://accounts.google.com";
 class GoogleConfig implements IssuerConfig {
     private jwksClient?: jwks.JwksClient;
-    
+
     public clientId = "832067986394-it9obigmu3qnemg0em02pocq4q4e1gd8.apps.googleusercontent.com";
     public getJwksClient = () => {
         if (this.jwksClient) return Promise.resolve(this.jwksClient);
@@ -17,7 +17,7 @@ class GoogleConfig implements IssuerConfig {
                     cache: true,
                     rateLimit: true,
                 });
-            })
+            });
     }
 }
 
