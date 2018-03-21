@@ -1,20 +1,19 @@
 import * as React from 'react';
-import { Redirect } from 'react-router-dom';
+import { UserManager } from 'oidc-client';
 
-interface Props {
-    onProcessSigninResponse: () => void;
-}
+// tslint:disable-next-line:no-string-literal
+window['UserManager'] = UserManager;
 
-export default class SigninHandler extends React.Component<Props, {}> {
-    constructor(props: Props) {
+export default class SigninHandler extends React.Component<{}, {}> {
+    constructor(props: {}) {
         super(props);
     }
 
     componentWillMount() {
-        this.props.onProcessSigninResponse();
+        new UserManager({}).signinPopupCallback();
     }
 
     render() {
-        return <Redirect to={{ pathname: `/` }} />;
+        return null;
     }
 }

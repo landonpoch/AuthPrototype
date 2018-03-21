@@ -1,5 +1,4 @@
 import * as React from 'react';
-// import { withRouter, RouteComponentProps } from 'react-router-dom';
 
 interface Props {
     user?: {
@@ -9,9 +8,6 @@ interface Props {
     onCreateSignOutRequest: () => void;
 }
 
-// tslint:disable-next-line:no-any
-// type PropsUnion = Props & RouteComponentProps<any>;
-
 class Login extends React.Component<Props, {}> {
     constructor(props: Props) {
         super(props);
@@ -19,17 +15,16 @@ class Login extends React.Component<Props, {}> {
 
     render() {
         return (
-            <h3>{
-                this.props.user ?
-                    <div>
-                        <p>{this.props.user.username}</p>
+            this.props.user ?
+                (
+                    <span>
+                        <span>{this.props.user.username}</span>
                         <a href="#" onClick={this.props.onCreateSignOutRequest}>Logout</a>
-                    </div> :
-                    <a href="#" onClick={this.props.onCreateSignInRequest}>Login</a>
-            }</h3>
+                    </span>
+                ) :
+                <a href="#" onClick={this.props.onCreateSignInRequest}>Login</a>
         );
     }
 }
 
-// export default withRouter(MockLogin);
 export default Login;
