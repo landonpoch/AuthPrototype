@@ -6,7 +6,7 @@
   "types": "lib/index",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "npm run build:live",
+    "start": "HTTPS=true npm run build:live",
     "build:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./src/index.ts",
     "build": "rimraf lib; npm run lint; tsc",
     "lint": "tslint -c tslint.json 'src/**/*.ts'"
