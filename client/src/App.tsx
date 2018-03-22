@@ -47,26 +47,15 @@ class App extends React.Component<{}, State> {
                     
                     <Route exact={true} path="/" component={Home} />
                     <Route path="/protected" component={Protected} />
-                    <Route path="/signinhandler" component={SigninHandler} />
+                    <Route path="/signinhandler" render={props => <SigninHandler mgr={this.getUserManager()} />} />
                 </div>
             </Router>
         );
     }
 
-    private onCreateSignInRequest = (thing: {}) => {
+    private onCreateSignInRequest = (state: {}) => {
         return this.getUserManager()
-            .signinPopup()
-            .then(response => {
-                // tslint:disable-next-line:no-console
-                console.log(response);
-
-                // return fetch('https://localhost:8443/token/test', { 
-                //     method: 'GET',
-                //     headers: new Headers({ 'Authorization': `Bearer ${response.id_token}` }),
-                // });
-            })
-            // .then(r => r.text())
-            // .then(console.log)
+            .signinRedirect({ state: location.href })
             .catch(err => {
                 // tslint:disable-next-line:no-console
                 console.log(err);
@@ -83,14 +72,9 @@ class App extends React.Component<{}, State> {
                 scope: 'openid profile email',
                 prompt: 'consent',
             };
-            // tslint:disable-next-line:no-any
             const mgr = new UserManager(userManagerSettings);
-            mgr.events.addUserLoaded(() => {
-                this.updateUserState();
-            });
-            mgr.events.addUserUnloaded(() => {
-                this.updateUserState();
-            });
+            mgr.events.addUserLoaded(this.updateUserState);
+            mgr.events.addUserUnloaded(this.updateUserState);
             this.mgr = mgr;
         }
         return this.mgr;

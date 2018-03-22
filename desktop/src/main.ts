@@ -9,10 +9,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     height: 600,
     webPreferences: {
-      nativeWindowOpen: true,
       nodeIntegration: false,
       preload: __dirname + "/preload.js",
-      sandbox: true,
     },
     width: 800,
   });

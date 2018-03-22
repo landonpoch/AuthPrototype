@@ -19,10 +19,10 @@ class Login extends React.Component<Props, {}> {
                 (
                     <span>
                         <span>{this.props.user.username}</span>
-                        <a href="#" onClick={this.props.onCreateSignOutRequest}>Logout</a>
+                        <a href="javascript:;" onClick={this.props.onCreateSignOutRequest}>Logout</a>
                     </span>
                 ) :
-                <a href="#" onClick={this.props.onCreateSignInRequest}>Login</a>
+                <a href="javascript:;" onClick={this.props.onCreateSignInRequest}>Login</a>
         );
     }
 }

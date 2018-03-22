@@ -1,16 +1,20 @@
 import * as React from 'react';
 import { UserManager } from 'oidc-client';
 
-// tslint:disable-next-line:no-string-literal
-window['UserManager'] = UserManager;
+interface Props {
+    mgr: UserManager;
+}
 
-export default class SigninHandler extends React.Component<{}, {}> {
-    constructor(props: {}) {
+export default class SigninHandler extends React.Component<Props, {}> {
+    constructor(props: Props) {
         super(props);
     }
 
     componentWillMount() {
-        new UserManager({}).signinPopupCallback();
+        return this.props.mgr.signinRedirectCallback()
+            .then(user => {
+                location.replace(user.state || '/');
+            });
     }
 
     render() {
