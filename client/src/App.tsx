@@ -60,13 +60,13 @@ class App extends React.Component<{}, State> {
                 // tslint:disable-next-line:no-console
                 console.log(response);
 
-                return fetch('https://localhost:8443/token/test', { 
-                    method: 'GET',
-                    headers: new Headers({ 'Authorization': `Bearer ${response.id_token}` }),
-                });
+                // return fetch('https://localhost:8443/token/test', { 
+                //     method: 'GET',
+                //     headers: new Headers({ 'Authorization': `Bearer ${response.id_token}` }),
+                // });
             })
-            .then(r => r.text())
-            .then(console.log)
+            // .then(r => r.text())
+            // .then(console.log)
             .catch(err => {
                 // tslint:disable-next-line:no-console
                 console.log(err);
@@ -83,6 +83,7 @@ class App extends React.Component<{}, State> {
                 scope: 'openid profile email',
                 prompt: 'consent',
             };
+            // tslint:disable-next-line:no-any
             const mgr = new UserManager(userManagerSettings);
             mgr.events.addUserLoaded(() => {
                 this.updateUserState();
