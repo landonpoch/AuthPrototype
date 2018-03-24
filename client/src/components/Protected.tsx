@@ -1,11 +1,7 @@
 import * as React from 'react';
 
-export default class Protected extends React.Component {
+export default class Protected extends React.Component<{}, {}> {
     render() {
-        return (
-            <div>
-                <h3>Protected</h3>
-            </div>
-        );
+        return <h3>Protected</h3>;
     }
 }

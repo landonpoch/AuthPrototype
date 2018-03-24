@@ -1,11 +1,13 @@
 import * as React from 'react';
 import { BrowserRouter as Router, Route, NavLink } from 'react-router-dom';
 import Home from './components/Home';
+import UserState from './components/UserState';
 import Login from './components/Login';
 import SigninHandler from './components/SigninHandler';
+import PrivateRoute from './components/PrivateRoute';
 import Protected from './components/Protected';
 import './App.css';
-import { UserManager, UserManagerSettings } from 'oidc-client';
+import { UserManager } from 'oidc-client';
 
 // tslint:disable-next-line:no-string-literal
 window['UserManager'] = UserManager;
@@ -17,9 +19,22 @@ interface State {
     id_token?: string;
 }
 
-class App extends React.Component<{}, State> {
-    private mgr: UserManager;
-
+export default class App extends React.Component<{}, State> {
+    
+    // userManager should be lazy loaded because we don't get config values until
+    // the user clicks on the login option they want.
+    private _userManager?: UserManager;
+    get userManager(): UserManager {
+        if (!this._userManager) {
+            const userManagerSettings = sessionStorage.getItem('UserManagerSettings');
+            const userManager = new UserManager(userManagerSettings ? JSON.parse(userManagerSettings) : {});
+            userManager.events.addUserLoaded(this.updateUserState);
+            userManager.events.addUserUnloaded(this.updateUserState);
+            return userManager;
+        }
+        return this._userManager;
+    }
+    
     constructor(props: {}) {
         super(props);
         this.state = { user: undefined, id_token: undefined };
@@ -34,69 +49,71 @@ class App extends React.Component<{}, State> {
             <Router>
                 <div className="App">
                     <header className="App-header">
-                        <img src={logo} className="App-logo" alt="logo" />
-                        <h1 className="App-title">Welcome to React</h1>
+                        <NavLink to="/">
+                            <img src={logo} className="App-logo" alt="logo" />
+                            <h1 className="App-title">Auth Prototype</h1>
+                        </NavLink>
+                        <div className="App-menu">
+                            
+                            <div className="App-nav">
+                            <NavLink to="/protected">Protected</NavLink>
+                            </div>
+
+                            <div className="App-user">
+                            <UserState 
+                                user={this.state.user}
+                                onCreateSignOutRequest={this.onCreateSignOutRequest}
+                            />
+                            </div>
+                        </div>
                     </header>
-                    <Login 
-                        user={this.state.user}
-                        onCreateSignInRequest={this.onCreateSignInRequest}
-                        onCreateSignOutRequest={this.onCreateSignOutRequest}
-                    />
-                    <NavLink to="/">Home</NavLink>
-                    <NavLink to="/protected">Protected</NavLink>
                     
-                    <Route exact={true} path="/" component={Home} />
-                    <Route path="/protected" component={Protected} />
-                    <Route path="/signinhandler" render={props => <SigninHandler mgr={this.getUserManager()} />} />
+                    <div className="Content">
+                        <Route exact={true} path="/" component={Home} />
+                        <PrivateRoute path="/protected" getUser={this.getUser} component={Protected} />
+                        <Route
+                            path="/login" 
+                            render={props => <Login onCreateSignInRequest={this.onCreateSignInRequest} {...props} />} 
+                        />
+                        <Route
+                            path="/signinhandler" 
+                            render={props => <SigninHandler onSignInResponse={this.onSignInResponse} />}
+                        />
+                    </div>
                 </div>
             </Router>
         );
     }
 
-    private onCreateSignInRequest = (state: {}) => {
-        return this.getUserManager()
-            .signinRedirect({ state: location.href })
-            .catch(err => {
-                // tslint:disable-next-line:no-console
-                console.log(err);
-            });
-    }
-
-    private getUserManager = (): UserManager => {
-        if (!this.mgr) {
-            const userManagerSettings: UserManagerSettings = {
-                authority: 'https://accounts.google.com/.well-known/openid-configuration',
-                client_id: '832067986394-it9obigmu3qnemg0em02pocq4q4e1gd8.apps.googleusercontent.com',
-                redirect_uri: 'https://localhost:3000/signinhandler',
-                response_type: 'id_token',
-                scope: 'openid profile email',
-                prompt: 'consent',
-            };
-            const mgr = new UserManager(userManagerSettings);
-            mgr.events.addUserLoaded(this.updateUserState);
-            mgr.events.addUserUnloaded(this.updateUserState);
-            this.mgr = mgr;
-        }
-        return this.mgr;
-    }
-
-    private updateUserState = () => {
-        return this.getUserManager().getUser()
-            .then(user => {
-                if (user && user.profile && user.profile.name) {
-                    this.setState({
-                        user: { username: user.profile.name },
-                        id_token: user.id_token
-                    });
-                } else {
-                    this.setState({ user: undefined, id_token: undefined });
-                }
-            });
+    private onCreateSignInRequest = (redirectUrl?: string) => {
+        return this.userManager.signinRedirect({ state: redirectUrl });
     }
 
     private onCreateSignOutRequest = () => {
-        return this.getUserManager().removeUser();
+        return this.userManager.removeUser();
+    }
+
+    private onSignInResponse = () => {
+        return this.userManager.signinRedirectCallback()
+            .then(user => {
+                location.replace(user.state || '/'); // TODO: Figure out weirdness here
+            });
+    }
+
+    private updateUserState = () => {
+        return this.userManager.getUser().then(user => {
+            if (user && user.profile && user.profile.name) {
+                this.setState({
+                    user: { username: user.profile.name },
+                    id_token: user.id_token
+                });
+            } else {
+                this.setState({ user: undefined, id_token: undefined });
+            }
+        });
+    }
+
+    private getUser = () => {
+        return this.state && this.state.user;
     }
 }
-
-export default App;

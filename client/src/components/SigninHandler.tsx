@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { UserManager } from 'oidc-client';
 
 interface Props {
-    mgr: UserManager;
+    onSignInResponse: () => Promise<void>;
 }
 
 export default class SigninHandler extends React.Component<Props, {}> {
@@ -10,14 +9,9 @@ export default class SigninHandler extends React.Component<Props, {}> {
         super(props);
     }
 
-    componentWillMount() {
-        return this.props.mgr.signinRedirectCallback()
-            .then(user => {
-                location.replace(user.state || '/');
-            });
-    }
+    render() { return null; }
 
-    render() {
-        return null;
+    componentDidMount() {
+        return this.props.onSignInResponse();
     }
 }

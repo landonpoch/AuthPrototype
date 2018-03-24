@@ -9,8 +9,13 @@
 
 .App-header {
   background-color: #222;
-  height: 150px;
+  height: 160px;
   padding: 20px;
+  color: white;
+}
+
+.App-header a {
+  text-decoration: none;
   color: white;
 }
 
@@ -18,8 +23,27 @@
   font-size: 1.5em;
 }
 
-.App-intro {
-  font-size: large;
+.App-menu a {
+  text-align: start;
+  text-decoration: none;
+  color: white;
+}
+
+.App-menu span {
+  text-decoration: none;
+  color: white;
+}
+
+.App-nav {
+  float: left;
+}
+
+.App-user {
+  float: right;
+}
+
+.App-user a {
+  margin-left: 1em;
 }
 
 @keyframes App-logo-spin {

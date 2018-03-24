@@ -7,12 +7,15 @@ let mainWindow: BrowserWindow | null = null;
 function createWindow() {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    height: 600,
+    center: true,
+    height: 700,
+    minHeight: 700,
+    minWidth: 1000,
     webPreferences: {
       nodeIntegration: false,
       preload: __dirname + "/preload.js",
     },
-    width: 800,
+    width: 1000,
   });
 
   // and load the index.html of the app.
@@ -25,7 +28,7 @@ function createWindow() {
   mainWindow.loadURL("https://localhost:3000/");
 
   // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  // mainWindow.webContents.openDevTools();
 
   // Emitted when the window is closed.
   mainWindow.on("closed", () => {
