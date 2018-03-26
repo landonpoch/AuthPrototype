@@ -1,23 +1,25 @@
 import * as React from 'react';
-import { Route, Redirect } from 'react-router-dom';
+import { Route, Redirect, RouteProps } from 'react-router-dom';
 
-// tslint:disable-next-line:no-any
-const PrivateRoute: (stuff: any) => JSX.Element = ({ getUser, component: Component, ...rest }) => (
-    <Route
-      {...rest}
-      render={props =>
-        getUser() ? (
-          <Component {...props} />
-        ) : (
-          <Redirect
-            to={{
-                pathname: '/login',
-                state: { from: location.pathname },
-            }} 
-          />
-        )
-      }
-    />
-  );
+interface Props extends RouteProps {
+  getUser: () => { username: string } | undefined;
+}
 
-export default PrivateRoute;
+export default class PrivateRoute extends React.Component<Props, {}> {
+  constructor(props: Props) {
+    super(props);
+  }
+
+  render() {
+    const { getUser, component: Component, ...rest } = this.props;
+    return (
+      <Route 
+        {...rest}
+        render={props =>
+          Component && getUser() ?
+            <Component {...props} /> :
+            <Redirect to={{ pathname: '/login', state: { from: location.pathname }, }}  />}
+      />
+    );
+  }
+}
