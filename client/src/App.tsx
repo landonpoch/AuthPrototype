@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as H from 'history';
 import { BrowserRouter as Router, Route, NavLink } from 'react-router-dom';
 import Home from './components/Home';
 import UserState from './components/UserState';
@@ -70,14 +71,14 @@ export default class App extends React.Component<{}, State> {
                     
                     <div className="Content">
                         <Route exact={true} path="/" component={Home} />
-                        <PrivateRoute path="/protected" getUser={this.getUser} component={Protected} />
+                        <PrivateRoute path="/protected" user={this.state.user} component={Protected} />
                         <Route
                             path="/login" 
                             render={props => <Login onCreateSignInRequest={this.onCreateSignInRequest} {...props} />} 
                         />
                         <Route
                             path="/signinhandler" 
-                            render={props => <SigninHandler onSignInResponse={this.onSignInResponse} />}
+                            render={props => <SigninHandler onSignInResponse={this.onSignInResponse} {...props} />}
                         />
                     </div>
                 </div>
@@ -89,15 +90,14 @@ export default class App extends React.Component<{}, State> {
         return this.userManager.signinRedirect({ state: redirectUrl });
     }
 
-    private onCreateSignOutRequest = () => {
-        return this.userManager.removeUser();
+    private onCreateSignOutRequest = (history: H.History) => {
+        return this.userManager.removeUser()
+            .then(() => { history.push('/'); });
     }
 
-    private onSignInResponse = () => {
+    private onSignInResponse = (history: H.History) => {
         return this.userManager.signinRedirectCallback()
-            .then(user => {
-                location.replace(user.state || '/'); // TODO: Figure out weirdness here
-            });
+            .then(user => { history.push(user.state || '/'); });
     }
 
     private updateUserState = () => {
@@ -111,9 +111,5 @@ export default class App extends React.Component<{}, State> {
                 this.setState({ user: undefined, id_token: undefined });
             }
         });
-    }
-
-    private getUser = () => {
-        return this.state && this.state.user;
     }
 }

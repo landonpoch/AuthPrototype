@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { NavLink } from 'react-router-dom';
+import * as H from 'history';
+import { NavLink, RouteComponentProps, withRouter } from 'react-router-dom';
 
-interface Props {
-    user?: {
-        username: string;
-    };
-    onCreateSignOutRequest: () => Promise<void>;
+// tslint:disable-next-line:no-any
+interface Props extends RouteComponentProps<any> {
+    user?: { username: string; };
+    onCreateSignOutRequest: (history: H.History) => Promise<void>;
 }
 
 class UserState extends React.Component<Props, {}> {
@@ -28,8 +28,8 @@ class UserState extends React.Component<Props, {}> {
 
     private signOut = () => {
         sessionStorage.removeItem('UserManagerSettings');
-        return this.props.onCreateSignOutRequest();
+        return this.props.onCreateSignOutRequest(this.props.history);
     }
 }
 
-export default UserState;
+export default withRouter(UserState);
