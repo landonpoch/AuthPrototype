@@ -55,23 +55,24 @@ export default class App extends React.Component<{}, State> {
                             <h1 className="App-title">Auth Prototype</h1>
                         </NavLink>
                         <div className="App-menu">
-                            
                             <div className="App-nav">
                             <NavLink to="/protected">Protected</NavLink>
                             </div>
 
                             <div className="App-user">
-                            <UserState 
-                                user={this.state.user}
-                                onCreateSignOutRequest={this.onCreateSignOutRequest}
-                            />
+                            <UserState user={this.state.user} onCreateSignOutRequest={this.onCreateSignOutRequest} />
                             </div>
                         </div>
                     </header>
                     
                     <div className="Content">
                         <Route exact={true} path="/" component={Home} />
-                        <PrivateRoute path="/protected" user={this.state.user} component={Protected} />
+                        <PrivateRoute
+                            path="/protected"
+                            user={this.state.user}
+                            component={Protected}
+                            token={this.state.id_token}
+                        />
                         <Route
                             path="/login" 
                             render={props => <Login onCreateSignInRequest={this.onCreateSignInRequest} {...props} />} 
