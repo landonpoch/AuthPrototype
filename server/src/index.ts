@@ -1,9 +1,10 @@
 import fs from "fs";
 import http from "http";
 import https from "https";
+import socketio from "socket.io";
 import express from "express";
 import bodyParser from "body-parser";
-import { jwtValidator, registerIssuer } from "./auth/jwtValidator";
+import { jwtValidator, isValidToken, registerIssuer } from "./auth/jwtValidator";
 import { googleIssuerKey, GoogleConfig } from "./auth/googleJwt";
 
 const app = express();
@@ -32,9 +33,34 @@ app.get("/token/test", (req, res) => {
 
 registerIssuer(googleIssuerKey, new GoogleConfig());
 
-https.createServer({
+const server = https.createServer({
     key: fs.readFileSync("key.pem"),
     cert: fs.readFileSync("cert.pem"),
     passphrase: "password"
-}, app).listen(process.env.PORT || 8443);
+}, app);
+
+// TODO: Cleanup and abstract to middleware
+const io = socketio.listen(server);
+io.use((socket, next) => {
+    console.log(socket.handshake.query);
+    if (socket.handshake.query && socket.handshake.query.token) {
+        isValidToken(socket.handshake.query.token)
+            .then(jwtPayload => {
+                (socket as any)["decoded"] = jwtPayload;
+                next();
+            })
+            .catch(err => {
+                next(new Error("Authentication error"));
+            });
+      } else {
+          next(new Error("Authentication error"));
+      }
+})
+.on("connection", (socket) => {
+    console.log("Connection!");
+    socket.emit("thing", "You are connected!");
+    setTimeout(() => { socket.emit("thing", "Second message!"); }, 1000);
+});
+
+server.listen(process.env.PORT || 8443);
 console.log(`App listening on port ${process.env.PORT || 8443}`);

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as socketio from 'socket.io-client';
 
 interface Props {
     token: string;
@@ -11,12 +12,14 @@ interface State {
 export default class Protected extends React.Component<Props, State> {
     public state: State = {};
     componentDidMount() {
-        return fetch('https://localhost:8443/token/test', {
-            headers: {'Authorization': `Bearer ${this.props.token}`}
-        })
-        .then(response => response.text())
-        .then(text => { this.setState({ text: text }); })
-        .catch(err => { this.setState({ text: err.toString() }); });
+        const io = socketio('https://localhost:8443', { query: { token: this.props.token } });
+        io.on('thing', console.log);
+
+        const options = { headers: {'Authorization': `Bearer ${this.props.token}`} };
+        return fetch('https://localhost:8443/token/test', options)
+            .then(response => response.text())
+            .then(text => { this.setState({ text: text }); })
+            .catch(err => { this.setState({ text: err.toString() }); });
     }
 
     render() {

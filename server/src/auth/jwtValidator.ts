@@ -132,4 +132,4 @@ const decodeJwt = (token: string): Jwt => {
     throw "Unable to decode JWT";
 };
 
-export { jwtValidator, registerIssuer };
+export { jwtValidator, isValidToken, registerIssuer };
