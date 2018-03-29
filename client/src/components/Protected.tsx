@@ -1,5 +1,4 @@
 import * as React from 'react';
-import * as socketio from 'socket.io-client';
 
 interface Props {
     token: string;
@@ -12,9 +11,6 @@ interface State {
 export default class Protected extends React.Component<Props, State> {
     public state: State = {};
     componentDidMount() {
-        const io = socketio('https://localhost:8443', { query: { token: this.props.token } });
-        io.on('thing', console.log);
-
         const options = { headers: {'Authorization': `Bearer ${this.props.token}`} };
         return fetch('https://localhost:8443/token/test', options)
             .then(response => response.text())

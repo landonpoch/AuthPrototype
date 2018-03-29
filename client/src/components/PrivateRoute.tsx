@@ -1,9 +1,9 @@
 import * as React from 'react';
+import Auth from '../helpers/auth';
 import { Route, Redirect, RouteProps } from 'react-router-dom';
 
 interface Props extends RouteProps {
-  user?: { username: string };
-  token?: string;
+  auth: Auth;
 }
 
 export default class PrivateRoute extends React.Component<Props, {}> {
@@ -12,13 +12,13 @@ export default class PrivateRoute extends React.Component<Props, {}> {
   }
 
   render() {
-    const { user, token, component: Component, ...rest } = this.props;
+    const { auth, component: Component, ...rest } = this.props;
     return (
       <Route 
         {...rest}
         render={props =>
-          Component && user && token ?
-            <Component token={this.props.token} {...props} /> : 
+          Component && this.props.auth.isAuthenticated() ?
+            <Component token={this.props.auth.getToken()} {...props} /> : 
             <Redirect to={{ pathname: '/login', state: { from: location.pathname }, }}  />}
       />
     );

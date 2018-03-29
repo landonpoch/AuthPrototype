@@ -46,6 +46,16 @@
   margin-left: 1em;
 }
 
+.App-footer {
+  background-color: #222;
+  position:absolute;
+  bottom:0;
+  width:100%;
+  height:100px;   /* Height of the footer */
+  color: white;
+  text-align: start;
+}
+
 @keyframes App-logo-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }

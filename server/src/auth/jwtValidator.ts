@@ -1,5 +1,6 @@
 
 import { RequestHandler } from "express";
+import socketio from "socket.io";
 import jwt from "jsonwebtoken";
 import jwks from "jwks-rsa";
 import { filter, first } from "lodash";
@@ -61,7 +62,22 @@ const registerIssuer = (iss: string, config: IssuerConfig): void => {
     issuerMap[iss] = config;
 };
 
-const jwtValidator: RequestHandler = (req, res, next) => {
+const socketJwtValidator = (socket: socketio.Socket, next: (err?: any) => void): void => {
+    if (socket.handshake.query && socket.handshake.query.token) {
+        isValidToken(socket.handshake.query.token)
+            .then(jwtPayload => {
+                (socket as any)["decoded"] = jwtPayload;
+                next();
+            })
+            .catch(err => {
+                next(new Error("Authentication error"));
+            });
+      } else {
+          next(new Error("Authentication error"));
+      }
+};
+
+const httpJwtValidator: RequestHandler = (req, res, next) => {
     if (req.method === "OPTIONS") return next();
 
     const denyAccess = () => {
@@ -132,4 +148,4 @@ const decodeJwt = (token: string): Jwt => {
     throw "Unable to decode JWT";
 };
 
-export { jwtValidator, isValidToken, registerIssuer };
+export { httpJwtValidator, socketJwtValidator, registerIssuer };

@@ -1,10 +1,10 @@
 import * as React from 'react';
-import * as H from 'history';
+import Auth from '../helpers/auth';
 import { RouteComponentProps } from 'react-router-dom';
 
 // tslint:disable-next-line:no-any
 interface Props extends RouteComponentProps<any> {
-    onSignInResponse: (history: H.History) => Promise<void>;
+    auth: Auth;
 }
 
 export default class SigninHandler extends React.Component<Props, {}> {
@@ -15,6 +15,6 @@ export default class SigninHandler extends React.Component<Props, {}> {
     render() { return null; }
 
     componentWillMount() {
-        return this.props.onSignInResponse(this.props.history);
+        return this.props.auth.onSignInResponse(this.props.history);
     }
 }

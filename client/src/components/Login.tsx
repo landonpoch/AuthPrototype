@@ -1,4 +1,5 @@
 import * as React from 'react';
+import Auth from '../helpers/auth';
 import { UserManagerSettings } from 'oidc-client';
 
 const googleLoginButton = require('../btn_google_signin_light_normal_web.png');
@@ -13,7 +14,8 @@ const googleSettings: UserManagerSettings = {
 
 interface Props {
     location?: { state?: { from?: string; }; };
-    onCreateSignInRequest: (redirectUrl?: string) => Promise<void>; 
+    auth: Auth;
+    // onCreateSignInRequest: (redirectUrl?: string) => Promise<void>; 
 }
 
 export default class Login extends React.Component<Props, {}> {
@@ -32,6 +34,6 @@ export default class Login extends React.Component<Props, {}> {
     private googleSignIn = () => {
         sessionStorage.setItem('UserManagerSettings', JSON.stringify(googleSettings));
         const redirectUrl = this.props.location && this.props.location.state && this.props.location.state.from;
-        return this.props.onCreateSignInRequest(redirectUrl);
+        return this.props.auth.onCreateSignInRequest(redirectUrl);
     }
 }

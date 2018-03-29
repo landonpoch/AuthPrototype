@@ -1,24 +1,30 @@
 import * as React from 'react';
-import * as H from 'history';
+import Auth from '../helpers/auth';
 import { NavLink, RouteComponentProps, withRouter } from 'react-router-dom';
 
 // tslint:disable-next-line:no-any
 interface Props extends RouteComponentProps<any> {
-    user?: { username: string; };
-    onCreateSignOutRequest: (history: H.History) => Promise<void>;
+    auth: Auth;
 }
 
-class UserState extends React.Component<Props, {}> {
+interface State {
+    isAuthenticated: boolean;
+}
+
+class UserState extends React.Component<Props, State> {
     constructor(props: Props) {
         super(props);
+        this.state = { isAuthenticated: false };
+        this.props.auth.addOnLogin(this.onLoginStateChange);
+        this.props.auth.addOnLogout(this.onLoginStateChange);
     }
 
     render() {
         return (
-            this.props.user ?
+            this.state.isAuthenticated ?
                 (
                     <span>
-                        <span>{this.props.user.username}</span>
+                        <span>{this.props.auth.getDisplayName()}</span>
                         <a href="javascript:;" onClick={this.signOut}>Logout</a>
                     </span>
                 ) :
@@ -28,7 +34,11 @@ class UserState extends React.Component<Props, {}> {
 
     private signOut = () => {
         sessionStorage.removeItem('UserManagerSettings');
-        return this.props.onCreateSignOutRequest(this.props.history);
+        return this.props.auth.onCreateSignOutRequest(this.props.history);
+    }
+
+    private onLoginStateChange = () => {
+        this.setState({ isAuthenticated: this.props.auth.isAuthenticated() });
     }
 }
 
