@@ -26,6 +26,11 @@ export default class App extends React.Component<{}, State> {
         this.auth = new Auth();
     }
 
+    componentWillMount() {
+        // TODO: Async doesn't work here, figure out how to keep user signed in after refresh.
+        return this.auth.init();
+    }
+
     render() {
         return (
             <Router>

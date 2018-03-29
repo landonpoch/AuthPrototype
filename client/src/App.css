@@ -1,5 +1,10 @@
+#root {
+  height: 100%;
+}
+
 .App {
   text-align: center;
+  height: 100%;
 }
 
 .App-logo {
@@ -48,12 +53,15 @@
 
 .App-footer {
   background-color: #222;
-  position:absolute;
-  bottom:0;
-  width:100%;
   height:100px;   /* Height of the footer */
   color: white;
   text-align: start;
+  padding: 20px;
+}
+
+/* TODO: Figure out min-height for content div better */
+.Content {
+  min-height: calc(100vh - 359px)
 }
 
 @keyframes App-logo-spin {

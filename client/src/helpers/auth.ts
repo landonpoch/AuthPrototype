@@ -23,11 +23,19 @@ export default class Auth {
         return this._userManager;
     }
 
-    public addOnLogin(handler: () => void) {
+    public init = (): Promise<void> => {
+        return this.userManager.getUser().then(user => {
+            if (user) {
+                this.user = user;
+            }
+        });
+    }
+
+    public addOnLogin = (handler: () => void) => {
         this.onLoginHandlers.push(handler);
     }
 
-    public removeOnLogin(handler: () => void) {
+    public removeOnLogin = (handler: () => void) => {
         const index = this.onLoginHandlers.indexOf(handler);
         if (index !== -1) {
             this.onLoginHandlers.splice(index, 1);
@@ -78,8 +86,13 @@ export default class Auth {
     }
 
     public onCreateSignOutRequest = (history: H.History) => {
-        return this.userManager.removeUser() // TODO: Clear out the user manager entirely
-            .then(() => { history.push('/'); });
+        this.user = undefined;
+        sessionStorage.removeItem('UserManagerSettings');
+        return this.userManager.removeUser()
+            .then(() => {        
+                this._userManager = undefined;
+                history.push('/'); 
+            });
     }
 
     public onSignInResponse = (history: H.History) => {
@@ -97,7 +110,6 @@ export default class Auth {
     }
 
     private onLogout = () => {
-        this.user = undefined;
         if (this.socketConnection) {
             this.socketConnection.disconnect();
         }

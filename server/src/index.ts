@@ -44,7 +44,11 @@ io.use(socketJwtValidator)
     .on("connection", (socket) => {
         console.log("Connection!");
         socket.emit("thing", "You are connected!");
-        setTimeout(() => { socket.emit("thing", "Second message!"); }, 1000);
+        const interval = setInterval(() => { socket.emit("thing", new Date().toString()); }, 1000);
+        socket.on("disconnect", () => {
+            clearInterval(interval);
+            console.log("Disconnected!");
+        });
     });
 
 server.listen(process.env.PORT || 8443);
