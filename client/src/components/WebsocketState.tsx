@@ -17,6 +17,12 @@ export default class WebsocketState extends React.Component<Props, State> {
         this.props.auth.addOnLogin(this.onLogin);
         this.props.auth.addOnLogout(this.onLogout);
     }
+
+    componentWillMount() {
+        if (this.props.auth.isAuthenticated()) {
+            this.listenToSocket();
+        }
+    }
     
     render() {
         return (
@@ -28,12 +34,16 @@ export default class WebsocketState extends React.Component<Props, State> {
     }
 
     private onLogin = () => {
-        const socket = this.props.auth.getSocket();
-        this.setState({ connected: true });
-        socket.on('thing', (message: string) => { this.setState({ lastMessageReceived: message }); });
+        this.listenToSocket();
     }
 
     private onLogout = () => {
         this.setState({ connected: false });
+    }
+
+    private listenToSocket = () => {
+        const socket = this.props.auth.getSocket();
+        this.setState({ connected: true });
+        socket.on('thing', (message: string) => { this.setState({ lastMessageReceived: message }); });
     }
 }

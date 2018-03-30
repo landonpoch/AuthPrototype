@@ -12,23 +12,27 @@ import Auth from './helpers/auth';
 
 const logo = require('./logo.svg');
 
+interface Props {
+    auth: Auth;
+}
+
 interface State {
     user?: { username: string; };
     id_token?: string;
 }
 
-export default class App extends React.Component<{}, State> {
-    private auth: Auth;
-    
-    constructor(props: {}) {
+export default class App extends React.Component<Props, State> {
+    constructor(props: Props) {
         super(props);
-        this.state = { user: undefined, id_token: undefined };
-        this.auth = new Auth();
-    }
-
-    componentWillMount() {
-        // TODO: Async doesn't work here, figure out how to keep user signed in after refresh.
-        return this.auth.init();
+        if (this.props.auth.isAuthenticated()) {
+            this.state = {
+                user: { username: this.props.auth.getDisplayName() },
+                id_token: this.props.auth.getToken() 
+            };
+        } else {
+            this.state = { user: undefined, id_token: undefined };
+        }
+        
     }
 
     render() {
@@ -46,7 +50,7 @@ export default class App extends React.Component<{}, State> {
                         </div>
 
                         <div className="user">
-                        <UserState auth={this.auth} />
+                        <UserState auth={this.props.auth} />
                         </div>
                     </div>
                 </header>
@@ -54,14 +58,17 @@ export default class App extends React.Component<{}, State> {
                 <section className="content">
                     <div className="content-body">
                         <Route exact={true} path="/" component={Home} />
-                        <PrivateRoute path="/protected" auth={this.auth} component={Protected} />
-                        <Route path="/login" render={props => <Login auth={this.auth} {...props} />} />
-                        <Route path="/signinhandler" render={props => <SigninHandler auth={this.auth} {...props} />} />
+                        <PrivateRoute path="/protected" auth={this.props.auth} component={Protected} />
+                        <Route path="/login" render={props => <Login auth={this.props.auth} {...props} />} />
+                        <Route
+                            path="/signinhandler"
+                            render={props => <SigninHandler auth={this.props.auth} {...props} />}
+                        />
                     </div>
                 </section>
 
                 <footer className="footer">
-                    <WebsocketState auth={this.auth} />
+                    <WebsocketState auth={this.props.auth} />
                 </footer>
                 </React.Fragment>
             </Router>

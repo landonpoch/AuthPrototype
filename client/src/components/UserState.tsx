@@ -14,7 +14,7 @@ interface State {
 class UserState extends React.Component<Props, State> {
     constructor(props: Props) {
         super(props);
-        this.state = { isAuthenticated: false };
+        this.state = { isAuthenticated: this.props.auth.isAuthenticated() };
         this.props.auth.addOnLogin(this.onLoginStateChange);
         this.props.auth.addOnLogout(this.onLoginStateChange);
     }

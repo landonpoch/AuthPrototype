@@ -27,6 +27,7 @@ export default class Auth {
         return this.userManager.getUser().then(user => {
             if (user) {
                 this.user = user;
+                this.connectToWebsocket();
             }
         });
     }
@@ -104,7 +105,7 @@ export default class Auth {
         return this.userManager.getUser()
             .then(user => {
                 this.user = user;
-                this.socketConnection = socketio('https://localhost:8443', { query: { token: this.getToken() } });
+                this.connectToWebsocket();
                 this.onLoginHandlers.forEach(h => h());
             });
     }
@@ -114,5 +115,9 @@ export default class Auth {
             this.socketConnection.disconnect();
         }
         this.onLogoutHandlers.forEach(h => h());
+    }
+
+    private connectToWebsocket = () => {
+        this.socketConnection = socketio('https://localhost:8443', { query: { token: this.getToken() } });
     }
 }
