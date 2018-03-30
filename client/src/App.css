@@ -1,67 +1,60 @@
-#root {
-  height: 100%;
-}
-
-.App {
-  text-align: center;
-  height: 100%;
-}
-
-.App-logo {
+.logo {
   animation: App-logo-spin infinite 20s linear;
   height: 80px;
 }
 
-.App-header {
+.header {
+  text-align: center;
   background-color: #222;
   height: 160px;
   padding: 20px;
   color: white;
 }
 
-.App-header a {
+.header a {
   text-decoration: none;
   color: white;
 }
 
-.App-title {
+.title {
   font-size: 1.5em;
 }
 
-.App-menu a {
+.menu a {
   text-align: start;
   text-decoration: none;
   color: white;
 }
 
-.App-menu span {
+.menu span {
   text-decoration: none;
   color: white;
 }
 
-.App-nav {
+.nav {
   float: left;
 }
 
-.App-user {
+.user {
   float: right;
 }
 
-.App-user a {
+.user a {
   margin-left: 1em;
 }
 
-.App-footer {
+.content { display: table-row; height: 100%; }
+.content-body {
+  display: table-cell;
+  text-align: center;
+}
+
+.footer {
   background-color: #222;
   height:100px;   /* Height of the footer */
   color: white;
   text-align: start;
   padding: 20px;
-}
-
-/* TODO: Figure out min-height for content div better */
-.Content {
-  min-height: calc(100vh - 359px)
 }
 
 @keyframes App-logo-spin {

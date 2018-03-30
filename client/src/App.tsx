@@ -34,33 +34,36 @@ export default class App extends React.Component<{}, State> {
     render() {
         return (
             <Router>
-                <div className="App">
-                    <header className="App-header">
-                        <NavLink to="/">
-                            <img src={logo} className="App-logo" alt="logo" />
-                            <h1 className="App-title">Auth Prototype</h1>
-                        </NavLink>
-                        <div className="App-menu">
-                            <div className="App-nav">
-                            <NavLink to="/protected">Protected</NavLink>
-                            </div>
-
-                            <div className="App-user">
-                            <UserState auth={this.auth} />
-                            </div>
+                <React.Fragment>
+                <header className="header">
+                    <NavLink to="/">
+                        <img src={logo} className="logo" alt="logo" />
+                        <h1 className="title">Auth Prototype</h1>
+                    </NavLink>
+                    <div className="menu">
+                        <div className="nav">
+                        <NavLink to="/protected">Protected</NavLink>
                         </div>
-                    </header>
-                    
-                    <div className="Content">
+
+                        <div className="user">
+                        <UserState auth={this.auth} />
+                        </div>
+                    </div>
+                </header>
+                
+                <section className="content">
+                    <div className="content-body">
                         <Route exact={true} path="/" component={Home} />
                         <PrivateRoute path="/protected" auth={this.auth} component={Protected} />
                         <Route path="/login" render={props => <Login auth={this.auth} {...props} />} />
                         <Route path="/signinhandler" render={props => <SigninHandler auth={this.auth} {...props} />} />
                     </div>
-                    <footer className="App-footer">
-                        <WebsocketState auth={this.auth} />
-                    </footer>
-                </div>
+                </section>
+
+                <footer className="footer">
+                    <WebsocketState auth={this.auth} />
+                </footer>
+                </React.Fragment>
             </Router>
         );
     }
