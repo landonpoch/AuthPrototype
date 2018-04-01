@@ -6,11 +6,7 @@ import './index.css';
 import Auth from './helpers/auth';
 
 const auth = new Auth();
-auth.init()
-  .then(() => {
-    ReactDOM.render(
-      <App auth={auth} />,
-      document.getElementById('root') as HTMLElement
-    );
-    registerServiceWorker();    
-  });
+auth.init().then(() => {
+    ReactDOM.render(<App auth={auth} />, document.getElementById('root') as HTMLElement);
+    registerServiceWorker();
+});

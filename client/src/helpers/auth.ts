@@ -2,6 +2,12 @@ import { UserManager, User } from 'oidc-client';
 import * as H from 'history';
 import * as socketio from 'socket.io-client';
 
+type Listener = () => void;
+export interface ListenerHelper<T extends string> {
+    addListener: (event: T, listener: Listener) => number;
+    removeListener: (event: T, handle: number) => void;
+}
+
 const AuthEvents = {
     login: 'login' as 'login',
     logout: 'logout' as 'logout',
@@ -11,14 +17,8 @@ const AuthEvents = {
 type AuthEvents = keyof typeof AuthEvents;
 export { AuthEvents };
 
-type Listener = () => void;
 type AuthListenerIndexes = { [K in AuthEvents]: number };
 type AuthListeners = { [K in AuthEvents]: Map<number, Listener>; };
-
-export interface ListenerHelper<T extends string> {
-    addListener: (event: T, listener: Listener) => number;
-    removeListener: (event: T, handle: number) => void;
-}
 
 export default class Auth implements ListenerHelper<AuthEvents> {
 
@@ -34,9 +34,7 @@ export default class Auth implements ListenerHelper<AuthEvents> {
         this.listeners = this.constructListeners();
     }
     
-    public init = (): Promise<void> => {
-        return this.onLogin();
-    }
+    public init = (): Promise<void> => this.onLogin();
 
     public addListener = (eventName: AuthEvents, listener: Listener): number => {
         const currentIndex = this.listenerIndexes[eventName];
@@ -48,6 +46,8 @@ export default class Auth implements ListenerHelper<AuthEvents> {
     public removeListener = (eventName: AuthEvents, handle: number): void => {
         this.listeners[eventName].delete(handle);
     }
+
+    public isAuthenticated = (): boolean => !!this.user && !!this.user.profile;
 
     public getDisplayName = (): string => {
         if (this.user && !!this.user.profile) {
@@ -65,13 +65,7 @@ export default class Auth implements ListenerHelper<AuthEvents> {
         }
     }
 
-    public isAuthenticated = (): boolean => {
-        return !!this.user && !!this.user.profile;
-    }
-
-    public isConnected = (): boolean => {
-        return !!this.socketConnection && this.socketConnection.connected;
-    }
+    public isConnected = (): boolean => !!this.socketConnection && this.socketConnection.connected;
 
     public getSocket = (): SocketIOClient.Socket => {
         if (this.socketConnection && this.socketConnection.connected) {
@@ -89,33 +83,28 @@ export default class Auth implements ListenerHelper<AuthEvents> {
     public onCreateSignOutRequest = (history: H.History) => {
         this.user = undefined;
         sessionStorage.removeItem('UserManagerSettings');
-        return this.userManager.removeUser()
-            .then(() => {        
-                this.userManager = new UserManager({});
-                history.push('/'); 
-            });
+        return this.userManager.removeUser().then(() => {
+            this.userManager = new UserManager({});
+            history.push('/'); 
+        });
     }
 
-    public onSignInResponse = (history: H.History) => {
-        return this.userManager.signinRedirectCallback()
-            .then(user => { history.push(user.state || '/'); });
-    }
+    public onSignInResponse = (history: H.History) =>
+        this.userManager.signinRedirectCallback()
+            .then(user => { history.push(user.state || '/'); })
 
     private onLogin = () => {
-        return this.userManager.getUser()
-            .then(user => {
-                if (user) {
-                    this.user = user;
-                    this.socketConnection = this.createSocketConnection();
-                    this.listeners.login.forEach(l => l());
-                }
-            });
+        return this.userManager.getUser().then(user => {
+            if (user) {
+                this.user = user;
+                this.socketConnection = this.createSocketConnection();
+                this.listeners.login.forEach(l => l());
+            }
+        });
     }
 
     private onLogout = () => {
-        if (this.socketConnection) {
-            this.socketConnection.disconnect();
-        }
+        if (this.socketConnection) { this.socketConnection.disconnect(); }
         this.listeners.logout.forEach(l => l());
     }
 
