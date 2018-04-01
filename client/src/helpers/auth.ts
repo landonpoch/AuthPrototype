@@ -2,63 +2,58 @@ import { UserManager, User } from 'oidc-client';
 import * as H from 'history';
 import * as socketio from 'socket.io-client';
 
-export default class Auth {
+const AuthEvents = {
+    login: 'login' as 'login',
+    logout: 'logout' as 'logout',
+    connect: 'connect' as 'connect',
+    disconnect: 'disconnect' as 'disconnect',
+};
+type AuthEvents = keyof typeof AuthEvents;
+export { AuthEvents };
 
-    private onLoginHandlers: Array<() => void> = [];
-    private onLogoutHandlers: Array<() => void> = [];
+type Listener = () => void;
+type AuthListenerIndexes = { [K in AuthEvents]: number };
+type AuthListeners = { [K in AuthEvents]: Map<number, Listener>; };
+
+export interface ListenerHelper<T extends string> {
+    addListener: (event: T, listener: Listener) => number;
+    removeListener: (event: T, handle: number) => void;
+}
+
+export default class Auth implements ListenerHelper<AuthEvents> {
+
+    private listenerIndexes: AuthListenerIndexes;
+    private listeners: AuthListeners;
+    private userManager: UserManager;
     private user?: User;
     private socketConnection?: SocketIOClient.Socket;
 
-    // userManager should be lazy loaded because we don't get config values until
-    // the user clicks on the login option they want.
-    private _userManager?: UserManager;
-    private get userManager(): UserManager {
-        if (!this._userManager) {
-            const userManagerSettings = sessionStorage.getItem('UserManagerSettings');
-            const userManager = new UserManager(userManagerSettings ? JSON.parse(userManagerSettings) : {});
-            userManager.events.addUserLoaded(this.onLogin);
-            userManager.events.addUserUnloaded(this.onLogout);
-            return userManager;
-        }
-        return this._userManager;
+    constructor() {
+        this.userManager = this.createUserManager();
+        this.listenerIndexes = this.constructListnerIndexes();
+        this.listeners = this.constructListeners();
     }
-
+    
     public init = (): Promise<void> => {
-        return this.userManager.getUser().then(user => {
-            if (user) {
-                this.user = user;
-                this.connectToWebsocket();
-            }
-        });
+        return this.onLogin();
     }
 
-    public addOnLogin = (handler: () => void) => {
-        this.onLoginHandlers.push(handler);
+    public addListener = (eventName: AuthEvents, listener: Listener): number => {
+        const currentIndex = this.listenerIndexes[eventName];
+        this.listeners[eventName].set(currentIndex, listener);
+        this.listenerIndexes[eventName]++;
+        return currentIndex;
     }
 
-    public removeOnLogin = (handler: () => void) => {
-        const index = this.onLoginHandlers.indexOf(handler);
-        if (index !== -1) {
-            this.onLoginHandlers.splice(index, 1);
-        }
-    }
-
-    public addOnLogout(handler: () => void) {
-        this.onLogoutHandlers.push(handler);
-    }
-
-    public removeOnLogout(handler: () => void) {
-        const index = this.onLogoutHandlers.indexOf(handler);
-        if (index !== -1) {
-            this.onLoginHandlers.splice(index, 1);
-        }
+    public removeListener = (eventName: AuthEvents, handle: number): void => {
+        this.listeners[eventName].delete(handle);
     }
 
     public getDisplayName = (): string => {
         if (this.user && !!this.user.profile) {
             return this.user.profile.name;
         } else {
-            throw 'Not authenticated!';
+            throw `Can't get display name. Not authenticated!`;
         }
     }
 
@@ -66,7 +61,7 @@ export default class Auth {
         if (this.user) {
             return this.user.id_token;
         } else {
-            throw 'Not authenticated!';
+            throw `Can't get token. Not authenticated!`;
         }
     }
 
@@ -74,15 +69,20 @@ export default class Auth {
         return !!this.user && !!this.user.profile;
     }
 
+    public isConnected = (): boolean => {
+        return !!this.socketConnection && this.socketConnection.connected;
+    }
+
     public getSocket = (): SocketIOClient.Socket => {
-        if (this.socketConnection) {
+        if (this.socketConnection && this.socketConnection.connected) {
             return this.socketConnection;
         } else {
-            throw 'Not connected!';
+            throw `Can't get socket.  Not connected!`;
         }
     }
 
     public onCreateSignInRequest = (redirectUrl?: string) => {
+        this.userManager = this.createUserManager();
         return this.userManager.signinRedirect({ state: redirectUrl });
     }
 
@@ -91,7 +91,7 @@ export default class Auth {
         sessionStorage.removeItem('UserManagerSettings');
         return this.userManager.removeUser()
             .then(() => {        
-                this._userManager = undefined;
+                this.userManager = new UserManager({});
                 history.push('/'); 
             });
     }
@@ -104,9 +104,11 @@ export default class Auth {
     private onLogin = () => {
         return this.userManager.getUser()
             .then(user => {
-                this.user = user;
-                this.connectToWebsocket();
-                this.onLoginHandlers.forEach(h => h());
+                if (user) {
+                    this.user = user;
+                    this.socketConnection = this.createSocketConnection();
+                    this.listeners.login.forEach(l => l());
+                }
             });
     }
 
@@ -114,10 +116,35 @@ export default class Auth {
         if (this.socketConnection) {
             this.socketConnection.disconnect();
         }
-        this.onLogoutHandlers.forEach(h => h());
+        this.listeners.logout.forEach(l => l());
     }
 
-    private connectToWebsocket = () => {
-        this.socketConnection = socketio('https://localhost:8443', { query: { token: this.getToken() } });
+    private createUserManager = (): UserManager => {
+        const userManagerSettings = sessionStorage.getItem('UserManagerSettings');
+        const userManager = new UserManager(userManagerSettings ? JSON.parse(userManagerSettings) : {});
+        userManager.events.addUserLoaded(this.onLogin);
+        userManager.events.addUserUnloaded(this.onLogout);
+        return userManager;
+    }
+
+    private createSocketConnection = (): SocketIOClient.Socket => {
+        const socket = socketio('https://localhost:8443', { query: { token: this.getToken() } });
+        socket.on('connect', () => { this.listeners.connect.forEach(l => l()); });
+        socket.on('disconnect', () => { this.listeners.disconnect.forEach(l => l()); });
+        return socket;
+    }
+
+    private constructListnerIndexes = (): AuthListenerIndexes => {
+        let result = {} as AuthListenerIndexes;
+        // tslint:disable-next-line:forin
+        for (const k in AuthEvents) { result[k] = 0; }
+        return result;
+    }
+
+    private constructListeners = (): AuthListeners => {
+        let result = {} as AuthListeners;
+        // tslint:disable-next-line:forin
+        for (const k in AuthEvents) { result[k] = new Map<number, Listener>(); }
+        return result;
     }
 }

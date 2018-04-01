@@ -12,11 +12,17 @@ interface State {
 }
 
 class UserState extends React.Component<Props, State> {
+    private loginListenerHandle: number;
+    private logoutListenerHandle: number;
+
     constructor(props: Props) {
         super(props);
         this.state = { isAuthenticated: this.props.auth.isAuthenticated() };
-        this.props.auth.addOnLogin(this.onLoginStateChange);
-        this.props.auth.addOnLogout(this.onLoginStateChange);
+    }
+
+    componentWillMount() {
+        this.loginListenerHandle = this.props.auth.addListener('login', this.onLoginStateChange);
+        this.logoutListenerHandle = this.props.auth.addListener('logout', this.onLoginStateChange);
     }
 
     render() {
@@ -30,6 +36,11 @@ class UserState extends React.Component<Props, State> {
                 ) :
                 <NavLink to="/login">Login</NavLink>
         );
+    }
+
+    componentWillUnmount() {
+        this.props.auth.removeListener('login', this.loginListenerHandle);
+        this.props.auth.removeListener('logout', this.logoutListenerHandle);
     }
 
     private signOut = () => {

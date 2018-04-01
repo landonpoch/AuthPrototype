@@ -13,8 +13,8 @@ export default class SigninHandler extends React.Component<Props, {}> {
     }
 
     render() { return null; }
-
-    componentWillMount() {
+    
+    componentDidMount() {
         return this.props.auth.onSignInResponse(this.props.history);
     }
 }

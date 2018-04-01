@@ -11,17 +11,17 @@ interface State {
 }
 
 export default class WebsocketState extends React.Component<Props, State> {
+    private connectListenerHandle: number;
+    private disconnectListenerHandle: number;
+
     constructor(props: Props) {
         super(props);
         this.state = { connected: false, lastMessageReceived: undefined };
-        this.props.auth.addOnLogin(this.onLogin);
-        this.props.auth.addOnLogout(this.onLogout);
     }
 
     componentWillMount() {
-        if (this.props.auth.isAuthenticated()) {
-            this.listenToSocket();
-        }
+        this.connectListenerHandle = this.props.auth.addListener('connect', this.onConnect);
+        this.disconnectListenerHandle = this.props.auth.addListener('disconnect', this.onDisconnect);
     }
     
     render() {
@@ -33,17 +33,18 @@ export default class WebsocketState extends React.Component<Props, State> {
         );
     }
 
-    private onLogin = () => {
-        this.listenToSocket();
+    componentWillUnmount() {
+        this.props.auth.removeListener('connect', this.connectListenerHandle);
+        this.props.auth.removeListener('disconnect', this.disconnectListenerHandle);
     }
 
-    private onLogout = () => {
-        this.setState({ connected: false });
-    }
-
-    private listenToSocket = () => {
-        const socket = this.props.auth.getSocket();
+    private onConnect = () => {
         this.setState({ connected: true });
+        const socket = this.props.auth.getSocket();
         socket.on('thing', (message: string) => { this.setState({ lastMessageReceived: message }); });
+    }
+
+    private onDisconnect = () => {
+        this.setState({ connected: false });
     }
 }

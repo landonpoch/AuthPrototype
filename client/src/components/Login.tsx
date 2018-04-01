@@ -15,7 +15,6 @@ const googleSettings: UserManagerSettings = {
 interface Props {
     location?: { state?: { from?: string; }; };
     auth: Auth;
-    // onCreateSignInRequest: (redirectUrl?: string) => Promise<void>; 
 }
 
 export default class Login extends React.Component<Props, {}> {
@@ -26,7 +25,8 @@ export default class Login extends React.Component<Props, {}> {
     render() {
         return (
             <React.Fragment>
-                <h3>Login</h3><img src={googleLoginButton} onClick={this.googleSignIn} />
+                <h3>Login</h3>
+                <img src={googleLoginButton} onClick={this.googleSignIn} />
             </React.Fragment>
         );
     }
