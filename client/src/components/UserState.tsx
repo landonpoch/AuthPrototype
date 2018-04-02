@@ -1,10 +1,10 @@
 import * as React from 'react';
-import Auth from '../helpers/auth';
+import AuthHelper from '../helpers/auth';
 import { NavLink, RouteComponentProps, withRouter } from 'react-router-dom';
 
 // tslint:disable-next-line:no-any
 interface Props extends RouteComponentProps<any> {
-    auth: Auth;
+    auth: AuthHelper;
 }
 
 interface State {
@@ -21,8 +21,8 @@ class UserState extends React.Component<Props, State> {
     }
 
     componentWillMount() {
-        this.loginListenerHandle = this.props.auth.addListener('login', this.onLoginStateChange);
-        this.logoutListenerHandle = this.props.auth.addListener('logout', this.onLoginStateChange);
+        this.loginListenerHandle = this.props.auth.addListener('login', this.onLogin);
+        this.logoutListenerHandle = this.props.auth.addListener('logout', this.onLogout);
     }
 
     render() {
@@ -48,9 +48,8 @@ class UserState extends React.Component<Props, State> {
         return this.props.auth.onCreateSignOutRequest(this.props.history);
     }
 
-    private onLoginStateChange = () => {
-        this.setState({ isAuthenticated: this.props.auth.isAuthenticated() });
-    }
+    private onLogin = () => { this.setState({ isAuthenticated: true }); };
+    private onLogout = () => { this.setState({ isAuthenticated: false }); };
 }
 
 export default withRouter(UserState);

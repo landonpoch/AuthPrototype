@@ -1,9 +1,9 @@
 import * as React from 'react';
-import Auth from '../helpers/auth';
+import AuthHelper from '../helpers/auth';
 import { Route, Redirect, RouteProps } from 'react-router-dom';
 
 interface Props extends RouteProps {
-  auth: Auth;
+  auth: AuthHelper;
 }
 
 export default class PrivateRoute extends React.Component<Props, {}> {

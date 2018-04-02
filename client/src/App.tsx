@@ -8,12 +8,12 @@ import PrivateRoute from './components/PrivateRoute';
 import Protected from './components/Protected';
 import WebsocketState from './components/WebsocketState';
 import './App.css';
-import Auth from './helpers/auth';
+import AuthHelper from './helpers/auth';
 
 const logo = require('./logo.svg');
 
 interface Props {
-    auth: Auth;
+    auth: AuthHelper;
 }
 
 interface State {

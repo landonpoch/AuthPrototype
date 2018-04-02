@@ -3,10 +3,10 @@ import * as ReactDOM from 'react-dom';
 import App from './App';
 import registerServiceWorker from './registerServiceWorker';
 import './index.css';
-import Auth from './helpers/auth';
+import AuthHelper from './helpers/auth';
 
-const auth = new Auth();
-auth.init().then(() => {
-    ReactDOM.render(<App auth={auth} />, document.getElementById('root') as HTMLElement);
+const authHelper = new AuthHelper();
+authHelper.init().then(() => {
+    ReactDOM.render(<App auth={authHelper} />, document.getElementById('root') as HTMLElement);
     registerServiceWorker();
 });

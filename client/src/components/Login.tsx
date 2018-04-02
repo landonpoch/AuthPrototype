@@ -1,6 +1,10 @@
 import * as React from 'react';
-import Auth from '../helpers/auth';
+import AuthHelper from '../helpers/auth';
 import { UserManagerSettings } from 'oidc-client';
+
+// tslint:disable-next-line:no-any
+declare var FB: any;
+const facebookLoginButton = require('../facebook.png');
 
 const googleLoginButton = require('../btn_google_signin_light_normal_web.png');
 const googleSettings: UserManagerSettings = {
@@ -14,7 +18,7 @@ const googleSettings: UserManagerSettings = {
 
 interface Props {
     location?: { state?: { from?: string; }; };
-    auth: Auth;
+    auth: AuthHelper;
 }
 
 export default class Login extends React.Component<Props, {}> {
@@ -25,8 +29,12 @@ export default class Login extends React.Component<Props, {}> {
     render() {
         return (
             <React.Fragment>
-                <h3>Login</h3>
+                <h3>Google Login</h3>
                 <img src={googleLoginButton} onClick={this.googleSignIn} />
+                <h3>Facebook Login</h3>
+                <img src={facebookLoginButton} onClick={this.facebookLogin} width="192" />
+                <h3>Username and Password</h3>
+                <span>TODO!</span>
             </React.Fragment>
         );
     }
@@ -35,5 +43,19 @@ export default class Login extends React.Component<Props, {}> {
         sessionStorage.setItem('UserManagerSettings', JSON.stringify(googleSettings));
         const redirectUrl = this.props.location && this.props.location.state && this.props.location.state.from;
         return this.props.auth.onCreateSignInRequest(redirectUrl);
+    }
+
+    private facebookLogin = () => {
+        FB.login(
+            // tslint:disable-next-line:no-any
+            (response: any) => {
+                // tslint:disable-next-line:no-console
+                console.log('Begin login callback');
+                // tslint:disable-next-line:no-console
+                console.log(response);
+                // tslint:disable-next-line:no-console
+                console.log('End login callback');
+            },
+            { scope: 'public_profile,email' });
     }
 }

@@ -1,8 +1,8 @@
 import * as React from 'react';
-import Auth from '../helpers/auth';
+import AuthHelper from '../helpers/auth';
 
 interface Props {
-    auth: Auth;
+    auth: AuthHelper;
 }
 
 interface State {
@@ -16,7 +16,7 @@ export default class WebsocketState extends React.Component<Props, State> {
 
     constructor(props: Props) {
         super(props);
-        this.state = { connected: false, lastMessageReceived: undefined };
+        this.state = { connected: this.props.auth.isConnected(), lastMessageReceived: undefined };
     }
 
     componentWillMount() {
@@ -44,7 +44,5 @@ export default class WebsocketState extends React.Component<Props, State> {
         socket.on('thing', (message: string) => { this.setState({ lastMessageReceived: message }); });
     }
 
-    private onDisconnect = () => {
-        this.setState({ connected: false });
-    }
+    private onDisconnect = () => { this.setState({ connected: false }); };
 }

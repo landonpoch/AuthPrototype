@@ -3,7 +3,7 @@ import * as H from 'history';
 import * as socketio from 'socket.io-client';
 
 type Listener = () => void;
-export interface ListenerHelper<T extends string> {
+export interface EventHelper<T extends string> {
     addListener: (event: T, listener: Listener) => number;
     removeListener: (event: T, handle: number) => void;
 }
@@ -20,7 +20,7 @@ export { AuthEvents };
 type AuthListenerIndexes = { [K in AuthEvents]: number };
 type AuthListeners = { [K in AuthEvents]: Map<number, Listener>; };
 
-export default class Auth implements ListenerHelper<AuthEvents> {
+export default class AuthHelper implements EventHelper<AuthEvents> {
 
     private listenerIndexes: AuthListenerIndexes;
     private listeners: AuthListeners;
@@ -34,7 +34,7 @@ export default class Auth implements ListenerHelper<AuthEvents> {
         this.listeners = this.constructListeners();
     }
     
-    public init = (): Promise<void> => this.onLogin();
+    public init = (): Promise<void> => this.loadUser();
 
     public addListener = (eventName: AuthEvents, listener: Listener): number => {
         const currentIndex = this.listenerIndexes[eventName];
@@ -89,11 +89,12 @@ export default class Auth implements ListenerHelper<AuthEvents> {
         });
     }
 
-    public onSignInResponse = (history: H.History) =>
+    public onSignInResponse = (history: H.History): Promise<void> =>
         this.userManager.signinRedirectCallback()
             .then(user => { history.push(user.state || '/'); })
 
-    private onLogin = () => {
+    private onLogin = (): void => { this.loadUser(); };
+    private loadUser = (): Promise<void> => {
         return this.userManager.getUser().then(user => {
             if (user) {
                 this.user = user;
