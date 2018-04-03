@@ -2,8 +2,6 @@ import * as React from 'react';
 import AuthHelper from '../helpers/auth';
 import { UserManagerSettings } from 'oidc-client';
 
-// tslint:disable-next-line:no-any
-declare var FB: any;
 const facebookLoginButton = require('../facebook.png');
 
 const googleLoginButton = require('../btn_google_signin_light_normal_web.png');
@@ -33,6 +31,7 @@ export default class Login extends React.Component<Props, {}> {
                 <img src={googleLoginButton} onClick={this.googleSignIn} />
                 <h3>Facebook Login</h3>
                 <img src={facebookLoginButton} onClick={this.facebookLogin} width="192" />
+                <button onClick={this.facebookLogout}>Logout</button>
                 <h3>Username and Password</h3>
                 <span>TODO!</span>
             </React.Fragment>
@@ -47,8 +46,7 @@ export default class Login extends React.Component<Props, {}> {
 
     private facebookLogin = () => {
         FB.login(
-            // tslint:disable-next-line:no-any
-            (response: any) => {
+            response => {
                 // tslint:disable-next-line:no-console
                 console.log('Begin login callback');
                 // tslint:disable-next-line:no-console
@@ -57,5 +55,16 @@ export default class Login extends React.Component<Props, {}> {
                 console.log('End login callback');
             },
             { scope: 'public_profile,email' });
+    }
+
+    private facebookLogout = () => {
+        FB.logout(response => {
+            // tslint:disable-next-line:no-console
+            console.log('Begin logout callback');
+            // tslint:disable-next-line:no-console
+            console.log(response);
+            // tslint:disable-next-line:no-console
+            console.log('End logout callback');
+        });
     }
 }

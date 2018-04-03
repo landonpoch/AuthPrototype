@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@types/facebook-js-sdk": "^2.8.4",
     "@types/react-router-dom": "^4.2.4",
     "oidc-client": "^1.4.1",
     "react": "^16.2.0",

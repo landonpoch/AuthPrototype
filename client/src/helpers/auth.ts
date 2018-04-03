@@ -28,10 +28,33 @@ export default class AuthHelper implements EventHelper<AuthEvents> {
     private user?: User;
     private socketConnection?: SocketIOClient.Socket;
 
-    constructor() {
+    constructor( /* fbLoader: () => Promise<fb.FacebookStatic> */ ) {
         this.userManager = this.createUserManager();
         this.listenerIndexes = this.constructListnerIndexes();
         this.listeners = this.constructListeners();
+
+        // TODO: Incorporate the facebook API into the auth service appropriately
+        // fbLoader().then(FB => {
+        //     // TODO: Figure out why this doesn't run every time.
+        //     // tslint:disable-next-line:no-console
+        //     console.log('FB SDK loaded');
+        //     FB.init({
+        //         appId      : '174980966636737',
+        //         cookie     : true,
+        //         xfbml      : true,
+        //         version    : 'v2.12'
+        //     });
+            
+        //     FB.AppEvents.logPageView();
+        //     FB.getLoginStatus(response => {
+        //         // tslint:disable-next-line:no-console
+        //         console.log('Being getLoginStatus');
+        //         // tslint:disable-next-line:no-console
+        //         console.log(response);
+        //         // tslint:disable-next-line:no-console
+        //         console.log('End getLoginStatus');
+        //     });
+        // });
     }
     
     public init = (): Promise<void> => this.loadUser();
