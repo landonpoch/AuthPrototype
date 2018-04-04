@@ -12,22 +12,57 @@ const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+app.use("/", (req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "https://localhost:3000");
+    next();
+});
 // Protect everything under the /token path
-app.use("/token", httpJwtValidator);
+app.use("/api", httpJwtValidator);
 
 app.get("/", (req, res) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
     res.send("hello world");
 });
 
-app.options("/token/test", (req, res) => {
-    res.setHeader("Access-Control-Allow-Origin", "https://localhost:3000");
+// https://hackernoon.com/your-node-js-authentication-tutorial-is-wrong-f1a3bf831a46
+app.put("/account/create", (req, res) => {
+    const username = req.body.username; // Should be an email
+    const password = req.body.password;
+
+    // TODO: Create account and issue 1st party JWT
+    // This doesn't have to be done prior to functional facebook auth
+});
+
+app.post("/account/reset", (req, res) => {
+
+});
+
+app.get("/token", (req, res) => {
+    const grantType = req.query.grant_type;
+    if (grantType === "password") {
+        const username = req.query.username;
+        const password = req.query.password;
+        // TODO: Validate username and password
+        // Issue 1st party JWT
+        // https://tools.ietf.org/html/rfc6749#section-4.3
+        // https://alexbilbie.com/guide-to-oauth-2-grants/ (see section 4.3)
+        // This doesn't have to be done prior to functional facebook auth
+    } else if (grantType === "facebook_access_token") {
+        const clientId = req.query.client_id;
+        const accessToken = req.query.facebook_access_token;
+        // TODO: Validate facebook access token
+        // Issue 1st party JWT
+        // https://stackoverflow.com/questions/23224548/how-to-authenticate-client-on-multiple-oauth2-providers
+        // https://tools.ietf.org/html/rfc6749#section-4.3
+        // https://alexbilbie.com/guide-to-oauth-2-grants/ (see section 4.3)
+    }
+});
+
+app.options("/api/test", (req, res) => {
     res.setHeader("Access-Control-Allow-Headers", "authorization");
     res.sendStatus(200);
 });
 
-app.get("/token/test", (req, res) => {
-    res.setHeader("Access-Control-Allow-Origin", "https://localhost:3000");
+app.get("/api/test", (req, res) => {
     res.send("Protected resource reached.");
 });
 

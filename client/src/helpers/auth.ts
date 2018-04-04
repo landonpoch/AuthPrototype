@@ -21,20 +21,18 @@ export { AuthEvents };
 type AuthListenerIndexes = { [K in AuthEvents]: number };
 type AuthListeners = { [K in AuthEvents]: Map<number, Listener>; };
 
-const loadFbLoginApi = () => {
-    // tslint:disable-next-line:no-string-literal
-    window['fbAsyncInit'] = function() {
-        FB.init({ appId: '174980966636737', cookie: true, version: 'v2.12' });
-        FB.AppEvents.logPageView();
-        FB.getLoginStatus(response => {
-            // tslint:disable-next-line:no-console
-            console.log('Being getLoginStatus');
-            // tslint:disable-next-line:no-console
-            console.log(response);
-            // tslint:disable-next-line:no-console
-            console.log('End getLoginStatus');
-        });
-    };
+// tslint:disable-next-line:no-string-literal
+window['fbAsyncInit'] = function() {
+    FB.init({ appId: '174980966636737', cookie: true, version: 'v2.12' });
+    FB.AppEvents.logPageView();
+    FB.getLoginStatus(response => {
+        // tslint:disable-next-line:no-console
+        console.log('Being getLoginStatus');
+        // tslint:disable-next-line:no-console
+        console.log(response);
+        // tslint:disable-next-line:no-console
+        console.log('End getLoginStatus');
+    });
 };
 
 export default class AuthHelper implements EventHelper<AuthEvents> {
@@ -46,7 +44,6 @@ export default class AuthHelper implements EventHelper<AuthEvents> {
     private socketConnection?: SocketIOClient.Socket;
 
     constructor() {
-        loadFbLoginApi();
         this.userManager = this.createUserManager();
         this.listenerIndexes = this.constructListnerIndexes();
         this.listeners = this.constructListeners();
