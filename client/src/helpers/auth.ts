@@ -1,6 +1,7 @@
 import { UserManager, User } from 'oidc-client';
 import * as H from 'history';
 import * as socketio from 'socket.io-client';
+import loadScript from './scriptLoader';
 
 type Listener = () => void;
 export interface EventHelper<T extends string> {
@@ -20,6 +21,22 @@ export { AuthEvents };
 type AuthListenerIndexes = { [K in AuthEvents]: number };
 type AuthListeners = { [K in AuthEvents]: Map<number, Listener>; };
 
+const loadFbLoginApi = () => {
+    // tslint:disable-next-line:no-string-literal
+    window['fbAsyncInit'] = function() {
+        FB.init({ appId: '174980966636737', cookie: true, version: 'v2.12' });
+        FB.AppEvents.logPageView();
+        FB.getLoginStatus(response => {
+            // tslint:disable-next-line:no-console
+            console.log('Being getLoginStatus');
+            // tslint:disable-next-line:no-console
+            console.log(response);
+            // tslint:disable-next-line:no-console
+            console.log('End getLoginStatus');
+        });
+    };
+};
+
 export default class AuthHelper implements EventHelper<AuthEvents> {
 
     private listenerIndexes: AuthListenerIndexes;
@@ -28,33 +45,11 @@ export default class AuthHelper implements EventHelper<AuthEvents> {
     private user?: User;
     private socketConnection?: SocketIOClient.Socket;
 
-    constructor( /* fbLoader: () => Promise<fb.FacebookStatic> */ ) {
+    constructor() {
+        loadFbLoginApi();
         this.userManager = this.createUserManager();
         this.listenerIndexes = this.constructListnerIndexes();
         this.listeners = this.constructListeners();
-
-        // TODO: Incorporate the facebook API into the auth service appropriately
-        // fbLoader().then(FB => {
-        //     // TODO: Figure out why this doesn't run every time.
-        //     // tslint:disable-next-line:no-console
-        //     console.log('FB SDK loaded');
-        //     FB.init({
-        //         appId      : '174980966636737',
-        //         cookie     : true,
-        //         xfbml      : true,
-        //         version    : 'v2.12'
-        //     });
-            
-        //     FB.AppEvents.logPageView();
-        //     FB.getLoginStatus(response => {
-        //         // tslint:disable-next-line:no-console
-        //         console.log('Being getLoginStatus');
-        //         // tslint:disable-next-line:no-console
-        //         console.log(response);
-        //         // tslint:disable-next-line:no-console
-        //         console.log('End getLoginStatus');
-        //     });
-        // });
     }
     
     public init = (): Promise<void> => this.loadUser();
@@ -108,7 +103,7 @@ export default class AuthHelper implements EventHelper<AuthEvents> {
         sessionStorage.removeItem('UserManagerSettings');
         return this.userManager.removeUser().then(() => {
             this.userManager = new UserManager({});
-            history.push('/'); 
+            history.push('/');
         });
     }
 
@@ -118,6 +113,7 @@ export default class AuthHelper implements EventHelper<AuthEvents> {
 
     private onLogin = (): void => { this.loadUser(); };
     private loadUser = (): Promise<void> => {
+        setTimeout(() => loadScript('facebook-jssdk', '//connect.facebook.net/en_US/sdk.js').catch(console.log), 0);
         return this.userManager.getUser().then(user => {
             if (user) {
                 this.user = user;

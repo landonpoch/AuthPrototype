@@ -27,50 +27,12 @@ export default class App extends React.Component<Props, State> {
         if (this.props.auth.isAuthenticated()) {
             this.state = {
                 user: { username: this.props.auth.getDisplayName() },
-                id_token: this.props.auth.getToken() 
+                id_token: this.props.auth.getToken(),
             };
         } else {
             this.state = { user: undefined, id_token: undefined };
         }
     }
-
-    loadFbLoginApi() {
-        // tslint:disable-next-line:no-string-literal
-        window['fbAsyncInit'] = function() {
-            FB.init({
-                appId      : '174980966636737',
-                cookie     : true,  // enable cookies to allow the server to access
-                // the session
-                xfbml      : true,  // parse social plugins on this page
-                version    : 'v2.12' // use version 2.1
-            });
-
-            FB.AppEvents.logPageView();
-            FB.getLoginStatus(response => {
-                // tslint:disable-next-line:no-console
-                console.log('Being getLoginStatus');
-                // tslint:disable-next-line:no-console
-                console.log(response);
-                // tslint:disable-next-line:no-console
-                console.log('End getLoginStatus');
-            });
-        };
-
-        // tslint:disable-next-line:no-console
-        console.log('Loading fb api');
-          // Load the SDK asynchronously
-        (function(d: Document, s: string, id: string) {
-            var js, fjs = d.getElementsByTagName(s)[0];
-            if (d.getElementById(id)) {
-                return;
-            }
-            js = d.createElement(s); js.id = id;
-            // tslint:disable-next-line:no-any
-            (js as any).src = '//connect.facebook.net/en_US/sdk.js';
-            // tslint:disable-next-line:no-any
-            (fjs as any).parentNode.insertBefore(js, fjs);
-        }(document, 'script', 'facebook-jssdk'));
-  }
 
     render() {
         return (
@@ -110,11 +72,5 @@ export default class App extends React.Component<Props, State> {
                 </React.Fragment>
             </Router>
         );
-    }
-
-    componentWillMount() {
-        // TODO: This sucker takes too long to load
-        // https://stackoverflow.com/questions/42847126/script-load-in-react
-        this.loadFbLoginApi();
     }
 }
