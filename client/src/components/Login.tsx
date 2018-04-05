@@ -49,6 +49,11 @@ export default class Login extends React.Component<Props, {}> {
             response => {
                 // tslint:disable-next-line:no-console
                 console.log('Begin login callback');
+                // tslint:disable-next-line:max-line-length
+                fetch(`//localhost:8443/token?grant_type=facebook_access_token&client_id=174980966636737&facebook_access_token=${response.authResponse.accessToken}`)
+                    .then(r => r.json())
+                    .then(console.log)
+                    .catch(console.log);
                 // tslint:disable-next-line:no-console
                 console.log(response);
                 // tslint:disable-next-line:no-console

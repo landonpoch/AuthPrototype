@@ -6,7 +6,13 @@ import express from "express";
 import bodyParser from "body-parser";
 import { httpJwtValidator, socketJwtValidator, registerIssuer } from "./auth/jwtValidator";
 import { googleIssuerKey, GoogleConfig } from "./auth/googleJwt";
+import fetch from "node-fetch";
+import secrets from "../secrets.json";
+import jwt from "jsonwebtoken";
 
+const facebookClientId = "174980966636737";
+const facebookHost = "https://graph.facebook.com/v2.12";
+let facebookAccessToken = "";
 const app = express();
 
 app.use(bodyParser.json());
@@ -49,11 +55,29 @@ app.get("/token", (req, res) => {
     } else if (grantType === "facebook_access_token") {
         const clientId = req.query.client_id;
         const accessToken = req.query.facebook_access_token;
-        // TODO: Validate facebook access token
-        // Issue 1st party JWT
-        // https://stackoverflow.com/questions/23224548/how-to-authenticate-client-on-multiple-oauth2-providers
-        // https://tools.ietf.org/html/rfc6749#section-4.3
-        // https://alexbilbie.com/guide-to-oauth-2-grants/ (see section 4.3)
+        fetch(`${facebookHost}/oauth/access_token?client_id=${facebookClientId}&client_secret=${secrets.facebookClientSecret}&grant_type=client_credentials`)
+            .then(r => r.json())
+            .then(body => {
+                facebookAccessToken = body.access_token;
+                return fetch(`${facebookHost}/debug_token?input_token=${accessToken}&access_token=${facebookAccessToken}`);
+            })
+            .then(r => r.json())
+            .then(body => {
+                if (body && body.data && body.data.is_valid && body.data.app_id === facebookClientId) {
+                    return fetch(`${facebookHost}/me?fields=id,email,name&access_token=${accessToken}`);
+                } else {
+                    throw "Invalid token!";
+                }
+            })
+            .then(r => r.json())
+            .then(body => {
+                const issuedJwt = jwt.sign({ ...body, iss: "https://localhost:3000" }, secrets.jwtSigningSecret);
+                res.send({ access_token: issuedJwt, token_type: "bearer" });
+            })
+            .catch((err: any) => {
+                console.log(err);
+                res.sendStatus(500);
+            });
     }
 });
 
