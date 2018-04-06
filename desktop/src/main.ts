@@ -8,14 +8,14 @@ function createWindow() {
   // Create the browser window.
   mainWindow = new BrowserWindow({
     center: true,
-    height: 700,
-    minHeight: 700,
-    minWidth: 1000,
+    height: 750,
+    minHeight: 750,
+    minWidth: 1100,
     webPreferences: {
       nodeIntegration: false,
       preload: __dirname + "/preload.js",
     },
-    width: 1000,
+    width: 1100,
   });
 
   // and load the index.html of the app.

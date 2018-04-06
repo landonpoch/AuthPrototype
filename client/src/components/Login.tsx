@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { RouteComponentProps } from 'react-router-dom';
 import AuthHelper from '../helpers/auth';
 import { UserManagerSettings } from 'oidc-client';
 
@@ -14,8 +15,9 @@ const googleSettings: UserManagerSettings = {
     prompt: 'consent',
 };
 
-interface Props {
-    location?: { state?: { from?: string; }; };
+// tslint:disable-next-line:no-any
+interface Props extends RouteComponentProps<any> {
+    // location?: { state?: { from?: string; }; };
     auth: AuthHelper;
 }
 
@@ -45,21 +47,35 @@ export default class Login extends React.Component<Props, {}> {
     }
 
     private facebookLogin = () => {
-        FB.login(
-            response => {
-                // tslint:disable-next-line:no-console
-                console.log('Begin login callback');
+        // https://stackoverflow.com/questions/7125320/facebook-login-without-pop-up
+        // var uri = encodeURI(location.href);
+        const uri = encodeURI('https://localhost:3000/');
+        FB.getLoginStatus(response => {
+            if (response.status === 'connected') {
+                // window.location.href=uri;
+            } else {
                 // tslint:disable-next-line:max-line-length
-                fetch(`//localhost:8443/token?grant_type=facebook_access_token&client_id=174980966636737&facebook_access_token=${response.authResponse.accessToken}`)
-                    .then(r => r.json())
-                    .then(console.log)
-                    .catch(console.log);
-                // tslint:disable-next-line:no-console
-                console.log(response);
-                // tslint:disable-next-line:no-console
-                console.log('End login callback');
-            },
-            { scope: 'public_profile,email' });
+                const loginUri = encodeURI(`https://www.facebook.com/dialog/oauth?client_id=174980966636737&redirect_uri=${uri}&response_type=token&state=bleh`);
+                location.replace(loginUri);
+                // this.props.history.push(loginUri);
+            }
+        });
+
+        // FB.login(
+        //     response => {
+        //         // tslint:disable-next-line:no-console
+        //         console.log('Begin login callback');
+        // tslint:disable-next-line:max-line-length
+        //         fetch(`//localhost:8443/token?grant_type=facebook_access_token&client_id=174980966636737&facebook_access_token=${response.authResponse.accessToken}`)
+        //             .then(r => r.json())
+        //             .then(console.log)
+        //             .catch(console.log);
+        //         // tslint:disable-next-line:no-console
+        //         console.log(response);
+        //         // tslint:disable-next-line:no-console
+        //         console.log('End login callback');
+        //     },
+        //     { scope: 'public_profile,email' });
     }
 
     private facebookLogout = () => {

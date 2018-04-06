@@ -21,6 +21,10 @@ export { AuthEvents };
 type AuthListenerIndexes = { [K in AuthEvents]: number };
 type AuthListeners = { [K in AuthEvents]: Map<number, Listener>; };
 
+interface IAuthHelper {
+    init(): Promise<void>;
+}
+
 // tslint:disable-next-line:no-string-literal
 window['fbAsyncInit'] = function() {
     FB.init({ appId: '174980966636737', cookie: true, version: 'v2.12' });
@@ -35,21 +39,33 @@ window['fbAsyncInit'] = function() {
     });
 };
 
-export default class AuthHelper implements EventHelper<AuthEvents> {
+class FacebookAuth implements IAuthHelper {
+    public init = (): Promise<void> => {
+        setTimeout(() => loadScript('facebook-jssdk', '//connect.facebook.net/en_US/sdk.js').catch(console.log), 0);
+        return Promise.resolve();
+    }
+}
+
+export default class AuthHelper implements IAuthHelper, EventHelper<AuthEvents> {
 
     private listenerIndexes: AuthListenerIndexes;
     private listeners: AuthListeners;
     private userManager: UserManager;
     private user?: User;
     private socketConnection?: SocketIOClient.Socket;
+    private facebookAuth: IAuthHelper;
 
     constructor() {
+        this.facebookAuth = new FacebookAuth();
         this.userManager = this.createUserManager();
         this.listenerIndexes = this.constructListnerIndexes();
         this.listeners = this.constructListeners();
     }
     
-    public init = (): Promise<void> => this.loadUser();
+    public init = (): Promise<void> => {
+        return Promise.all([this.facebookAuth.init(), this.loadUser()])
+            .then(val => undefined);
+    }
 
     public addListener = (eventName: AuthEvents, listener: Listener): number => {
         const currentIndex = this.listenerIndexes[eventName];
@@ -110,7 +126,6 @@ export default class AuthHelper implements EventHelper<AuthEvents> {
 
     private onLogin = (): void => { this.loadUser(); };
     private loadUser = (): Promise<void> => {
-        setTimeout(() => loadScript('facebook-jssdk', '//connect.facebook.net/en_US/sdk.js').catch(console.log), 0);
         return this.userManager.getUser().then(user => {
             if (user) {
                 this.user = user;
