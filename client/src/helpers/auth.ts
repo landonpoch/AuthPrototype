@@ -1,7 +1,14 @@
-import { UserManager, User } from 'oidc-client';
+import { UserManager, User, UserManagerSettings } from 'oidc-client';
 import * as H from 'history';
 import * as socketio from 'socket.io-client';
 import loadScript from './scriptLoader';
+
+const AuthProvider = {
+    Google: 'Google' as 'Google',
+    Facebook: 'Facebook' as 'Facebook',
+};
+type AuthProvider = keyof typeof AuthProvider;
+export { AuthProvider };
 
 type Listener = () => void;
 export interface EventHelper<T extends string> {
@@ -23,6 +30,9 @@ type AuthListeners = { [K in AuthEvents]: Map<number, Listener>; };
 
 interface IAuthHelper {
     init(): Promise<void>;
+    login(redirectUrl?: string): Promise<void>;
+    loggedIn(history: H.History): Promise<void>;
+    logout(): Promise<void>;
 }
 
 // tslint:disable-next-line:no-string-literal
@@ -40,31 +50,105 @@ window['fbAsyncInit'] = function() {
 };
 
 class FacebookAuth implements IAuthHelper {
+    constructor(onLogin: (user: User) => void, onLogout: () => void) {
+        // 
+    }
+
     public init = (): Promise<void> => {
         setTimeout(() => loadScript('facebook-jssdk', '//connect.facebook.net/en_US/sdk.js').catch(console.log), 0);
         return Promise.resolve();
     }
+    
+    login(redirectUrl?: string | undefined): Promise<void> {
+        throw new Error('Method not implemented.');
+    }
+    loggedIn(history: H.History): Promise<void> {
+        throw new Error('Method not implemented.');
+    }
+    logout(): Promise<void> {
+        throw new Error('Method not implemented.');
+    }
 }
 
-export default class AuthHelper implements IAuthHelper, EventHelper<AuthEvents> {
+const googleSettings: UserManagerSettings = {
+    authority: 'https://accounts.google.com/.well-known/openid-configuration',
+    client_id: '832067986394-it9obigmu3qnemg0em02pocq4q4e1gd8.apps.googleusercontent.com',
+    redirect_uri: 'https://localhost:3000/signinhandler',
+    response_type: 'id_token',
+    scope: 'openid profile email',
+    prompt: 'consent',
+};
+
+class OpenIdAuth implements IAuthHelper {
+    private userManager: UserManager;
+    private onLogin: (user: User) => void;
+    private onLogout: () => void;
+
+    constructor(onLogin: (user: User) => void, onLogout: () => void) {
+        this.onLogin = onLogin;
+        this.onLogout = onLogout;
+        this.userManager = this.createUserManager();
+    }
+    
+    public init = (): Promise<void> => this.loadUser();
+
+    public login = (redirectUrl?: string): Promise<void> => {
+        sessionStorage.setItem('UserManagerSettings', JSON.stringify(googleSettings));
+        this.userManager = this.createUserManager();
+        return this.userManager.signinRedirect({ state: redirectUrl });
+    }
+    
+    public loggedIn = (history: H.History): Promise<void> => {
+        return this.userManager.signinRedirectCallback()
+            .then(user => { history.push(user.state || '/'); });
+    }
+
+    public logout = (): Promise<void> => {
+        sessionStorage.removeItem('UserManagerSettings');
+        return this.userManager.removeUser().then(() => { this.userManager = new UserManager({}); });
+    }
+
+    private createUserManager = (): UserManager => {
+        const userManagerSettings = sessionStorage.getItem('UserManagerSettings');
+        const userManager = new UserManager(userManagerSettings ? JSON.parse(userManagerSettings) : {});
+        // tslint:disable-next-line:max-line-length
+        userManager.events.addUserLoaded(() => { this.loadUser(); });
+        userManager.events.addUserUnloaded(this.onLogout);
+        return userManager;
+    }
+
+    private loadUser = (): Promise<void> => {
+        return this.userManager.getUser().then(user => { if (user) { this.onLogin(user); } });
+    }
+}
+
+export default class AuthHelper implements EventHelper<AuthEvents> {
+
+    static readonly AuthProviderKey = 'AuthProvider';
 
     private listenerIndexes: AuthListenerIndexes;
     private listeners: AuthListeners;
-    private userManager: UserManager;
-    private user?: User;
     private socketConnection?: SocketIOClient.Socket;
+    
+    private user?: User;
     private facebookAuth: IAuthHelper;
+    private openIdAuth: IAuthHelper;
 
     constructor() {
-        this.facebookAuth = new FacebookAuth();
-        this.userManager = this.createUserManager();
+        this.facebookAuth = new FacebookAuth(this.onLogin, this.onLogout);
+        this.openIdAuth = new OpenIdAuth(this.onLogin, this.onLogout);
         this.listenerIndexes = this.constructListnerIndexes();
         this.listeners = this.constructListeners();
     }
     
     public init = (): Promise<void> => {
-        return Promise.all([this.facebookAuth.init(), this.loadUser()])
-            .then(val => undefined);
+        const authProvider = sessionStorage.getItem(AuthHelper.AuthProviderKey) as AuthProvider;
+        switch (authProvider) {
+            case AuthProvider.Google:
+                return this.openIdAuth.init();
+            default:
+                return this.facebookAuth.init();
+        }
     }
 
     public addListener = (eventName: AuthEvents, listener: Listener): number => {
@@ -106,46 +190,51 @@ export default class AuthHelper implements IAuthHelper, EventHelper<AuthEvents> 
         }
     }
 
-    public onCreateSignInRequest = (redirectUrl?: string) => {
-        this.userManager = this.createUserManager();
-        return this.userManager.signinRedirect({ state: redirectUrl });
+    public onCreateSignInRequest = (authProvider: AuthProvider, redirectUrl?: string) => {
+        switch (authProvider) {
+            case AuthProvider.Google:
+                sessionStorage.setItem(AuthHelper.AuthProviderKey, AuthProvider.Google);
+                return this.openIdAuth.login(redirectUrl);
+            case AuthProvider.Facebook:
+                sessionStorage.setItem(AuthHelper.AuthProviderKey, AuthProvider.Facebook);
+                return Promise.resolve();
+            default:
+                return Promise.resolve();
+        }
     }
 
     public onCreateSignOutRequest = (history: H.History) => {
-        this.user = undefined;
-        sessionStorage.removeItem('UserManagerSettings');
-        return this.userManager.removeUser().then(() => {
-            this.userManager = new UserManager({});
-            history.push('/');
-        });
+        const authProvider = sessionStorage.getItem(AuthHelper.AuthProviderKey) as AuthProvider;
+        const loggedOut = () => sessionStorage.removeItem(AuthHelper.AuthProviderKey);
+        switch (authProvider) {
+            case AuthProvider.Google:
+                return this.openIdAuth.logout().then(() => { history.push('/'); }).then(loggedOut);
+            default:
+                return Promise.resolve().then(loggedOut);
+        }
+        
     }
 
-    public onSignInResponse = (history: H.History): Promise<void> =>
-        this.userManager.signinRedirectCallback()
-            .then(user => { history.push(user.state || '/'); })
+    public onSignInResponse = (history: H.History): Promise<void> => {
+        const authProvider = sessionStorage.getItem(AuthHelper.AuthProviderKey) as AuthProvider;
+        switch (authProvider) {
+            case AuthProvider.Google:
+                return this.openIdAuth.loggedIn(history);
+            default:
+                return Promise.resolve();
+        }
+    }
 
-    private onLogin = (): void => { this.loadUser(); };
-    private loadUser = (): Promise<void> => {
-        return this.userManager.getUser().then(user => {
-            if (user) {
-                this.user = user;
-                this.socketConnection = this.createSocketConnection();
-                this.listeners.login.forEach(l => l());
-            }
-        });
+    private onLogin = (user: User): void => {
+        this.user = user;
+        this.socketConnection = this.createSocketConnection();
+        this.listeners.login.forEach(l => l());
     }
 
     private onLogout = () => {
-        if (this.socketConnection) { this.socketConnection.disconnect(); }
         this.listeners.logout.forEach(l => l());
-    }
-
-    private createUserManager = (): UserManager => {
-        const userManagerSettings = sessionStorage.getItem('UserManagerSettings');
-        const userManager = new UserManager(userManagerSettings ? JSON.parse(userManagerSettings) : {});
-        userManager.events.addUserLoaded(this.onLogin);
-        userManager.events.addUserUnloaded(this.onLogout);
-        return userManager;
+        if (this.socketConnection) { this.socketConnection.disconnect(); }
+        this.user = undefined;
     }
 
     private createSocketConnection = (): SocketIOClient.Socket => {

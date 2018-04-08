@@ -1,23 +1,12 @@
 import * as React from 'react';
 import { RouteComponentProps } from 'react-router-dom';
-import AuthHelper from '../helpers/auth';
-import { UserManagerSettings } from 'oidc-client';
+import AuthHelper, { AuthProvider } from '../helpers/auth';
 
 const facebookLoginButton = require('../facebook.png');
-
 const googleLoginButton = require('../btn_google_signin_light_normal_web.png');
-const googleSettings: UserManagerSettings = {
-    authority: 'https://accounts.google.com/.well-known/openid-configuration',
-    client_id: '832067986394-it9obigmu3qnemg0em02pocq4q4e1gd8.apps.googleusercontent.com',
-    redirect_uri: 'https://localhost:3000/signinhandler',
-    response_type: 'id_token',
-    scope: 'openid profile email',
-    prompt: 'consent',
-};
 
 // tslint:disable-next-line:no-any
 interface Props extends RouteComponentProps<any> {
-    // location?: { state?: { from?: string; }; };
     auth: AuthHelper;
 }
 
@@ -41,15 +30,20 @@ export default class Login extends React.Component<Props, {}> {
     }
 
     private googleSignIn = () => {
-        sessionStorage.setItem('UserManagerSettings', JSON.stringify(googleSettings));
-        const redirectUrl = this.props.location && this.props.location.state && this.props.location.state.from;
-        return this.props.auth.onCreateSignInRequest(redirectUrl);
+        const redirectUrl: string = this.props.location && this.props.location.state && this.props.location.state.from;
+        return this.props.auth.onCreateSignInRequest(AuthProvider.Google, redirectUrl);
     }
 
     private facebookLogin = () => {
+        // tslint:disable-next-line:max-line-length
+        // const redirectUrl: string = this.props.location && this.props.location.state && this.props.location.state.from;
+        // return this.props.auth.onCreateSignInRequest(AuthProvider.Facebook, redirectUrl);
+        
         // https://stackoverflow.com/questions/7125320/facebook-login-without-pop-up
         // var uri = encodeURI(location.href);
-        const uri = encodeURI('https://localhost:3000/');
+        const uri = encodeURI('https://localhost:3000/'); // Should be using signinhandler
+        // https://developers.facebook.com/apps/174980966636737/fb-login/settings/
+        // https://www.facebook.com/settings?tab=applications
         FB.getLoginStatus(response => {
             if (response.status === 'connected') {
                 // window.location.href=uri;

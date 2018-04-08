@@ -44,7 +44,6 @@ class UserState extends React.Component<Props, State> {
     }
 
     private signOut = () => {
-        sessionStorage.removeItem('UserManagerSettings');
         return this.props.auth.onCreateSignOutRequest(this.props.history);
     }
 
