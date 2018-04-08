@@ -1,14 +1,9 @@
-import { UserManager, User, UserManagerSettings } from 'oidc-client';
 import * as H from 'history';
 import * as socketio from 'socket.io-client';
-import loadScript from './scriptLoader';
 
-const AuthProvider = {
-    Google: 'Google' as 'Google',
-    Facebook: 'Facebook' as 'Facebook',
-};
-type AuthProvider = keyof typeof AuthProvider;
-export { AuthProvider };
+import { IAuthHelper, AuthProvider, User } from './interfaces';
+import OpenIdAuth from './openIdAuth';
+import FacebookAuth from './facebookAuth';
 
 type Listener = () => void;
 export interface EventHelper<T extends string> {
@@ -27,100 +22,6 @@ export { AuthEvents };
 
 type AuthListenerIndexes = { [K in AuthEvents]: number };
 type AuthListeners = { [K in AuthEvents]: Map<number, Listener>; };
-
-interface IAuthHelper {
-    init(): Promise<void>;
-    login(redirectUrl?: string): Promise<void>;
-    loggedIn(history: H.History): Promise<void>;
-    logout(): Promise<void>;
-}
-
-// tslint:disable-next-line:no-string-literal
-window['fbAsyncInit'] = function() {
-    FB.init({ appId: '174980966636737', cookie: true, version: 'v2.12' });
-    FB.AppEvents.logPageView();
-    FB.getLoginStatus(response => {
-        // tslint:disable-next-line:no-console
-        console.log('Being getLoginStatus');
-        // tslint:disable-next-line:no-console
-        console.log(response);
-        // tslint:disable-next-line:no-console
-        console.log('End getLoginStatus');
-    });
-};
-
-class FacebookAuth implements IAuthHelper {
-    constructor(onLogin: (user: User) => void, onLogout: () => void) {
-        // 
-    }
-
-    public init = (): Promise<void> => {
-        setTimeout(() => loadScript('facebook-jssdk', '//connect.facebook.net/en_US/sdk.js').catch(console.log), 0);
-        return Promise.resolve();
-    }
-    
-    login(redirectUrl?: string | undefined): Promise<void> {
-        throw new Error('Method not implemented.');
-    }
-    loggedIn(history: H.History): Promise<void> {
-        throw new Error('Method not implemented.');
-    }
-    logout(): Promise<void> {
-        throw new Error('Method not implemented.');
-    }
-}
-
-const googleSettings: UserManagerSettings = {
-    authority: 'https://accounts.google.com/.well-known/openid-configuration',
-    client_id: '832067986394-it9obigmu3qnemg0em02pocq4q4e1gd8.apps.googleusercontent.com',
-    redirect_uri: 'https://localhost:3000/signinhandler',
-    response_type: 'id_token',
-    scope: 'openid profile email',
-    prompt: 'consent',
-};
-
-class OpenIdAuth implements IAuthHelper {
-    private userManager: UserManager;
-    private onLogin: (user: User) => void;
-    private onLogout: () => void;
-
-    constructor(onLogin: (user: User) => void, onLogout: () => void) {
-        this.onLogin = onLogin;
-        this.onLogout = onLogout;
-        this.userManager = this.createUserManager();
-    }
-    
-    public init = (): Promise<void> => this.loadUser();
-
-    public login = (redirectUrl?: string): Promise<void> => {
-        sessionStorage.setItem('UserManagerSettings', JSON.stringify(googleSettings));
-        this.userManager = this.createUserManager();
-        return this.userManager.signinRedirect({ state: redirectUrl });
-    }
-    
-    public loggedIn = (history: H.History): Promise<void> => {
-        return this.userManager.signinRedirectCallback()
-            .then(user => { history.push(user.state || '/'); });
-    }
-
-    public logout = (): Promise<void> => {
-        sessionStorage.removeItem('UserManagerSettings');
-        return this.userManager.removeUser().then(() => { this.userManager = new UserManager({}); });
-    }
-
-    private createUserManager = (): UserManager => {
-        const userManagerSettings = sessionStorage.getItem('UserManagerSettings');
-        const userManager = new UserManager(userManagerSettings ? JSON.parse(userManagerSettings) : {});
-        // tslint:disable-next-line:max-line-length
-        userManager.events.addUserLoaded(() => { this.loadUser(); });
-        userManager.events.addUserUnloaded(this.onLogout);
-        return userManager;
-    }
-
-    private loadUser = (): Promise<void> => {
-        return this.userManager.getUser().then(user => { if (user) { this.onLogin(user); } });
-    }
-}
 
 export default class AuthHelper implements EventHelper<AuthEvents> {
 
@@ -146,8 +47,10 @@ export default class AuthHelper implements EventHelper<AuthEvents> {
         switch (authProvider) {
             case AuthProvider.Google:
                 return this.openIdAuth.init();
-            default:
+            case AuthProvider.Facebook:
                 return this.facebookAuth.init();
+            default:
+                return Promise.resolve();
         }
     }
 
@@ -162,11 +65,11 @@ export default class AuthHelper implements EventHelper<AuthEvents> {
         this.listeners[eventName].delete(handle);
     }
 
-    public isAuthenticated = (): boolean => !!this.user && !!this.user.profile;
+    public isAuthenticated = (): boolean => !!this.user;
 
     public getDisplayName = (): string => {
-        if (this.user && !!this.user.profile) {
-            return this.user.profile.name;
+        if (this.user) {
+            return this.user.email;
         } else {
             throw `Can't get display name. Not authenticated!`;
         }
@@ -174,7 +77,7 @@ export default class AuthHelper implements EventHelper<AuthEvents> {
 
     public getToken = (): string => {
         if (this.user) {
-            return this.user.id_token;
+            return this.user.idToken;
         } else {
             throw `Can't get token. Not authenticated!`;
         }
@@ -197,7 +100,19 @@ export default class AuthHelper implements EventHelper<AuthEvents> {
                 return this.openIdAuth.login(redirectUrl);
             case AuthProvider.Facebook:
                 sessionStorage.setItem(AuthHelper.AuthProviderKey, AuthProvider.Facebook);
+                return this.facebookAuth.login(redirectUrl);
+            default:
                 return Promise.resolve();
+        }
+    }
+
+    public onSignInResponse = (history: H.History): Promise<void> => {
+        const authProvider = sessionStorage.getItem(AuthHelper.AuthProviderKey) as AuthProvider;
+        switch (authProvider) {
+            case AuthProvider.Google:
+                return this.openIdAuth.loggedIn(history);
+            case AuthProvider.Facebook:
+                return this.facebookAuth.loggedIn(history);
             default:
                 return Promise.resolve();
         }
@@ -209,20 +124,12 @@ export default class AuthHelper implements EventHelper<AuthEvents> {
         switch (authProvider) {
             case AuthProvider.Google:
                 return this.openIdAuth.logout().then(() => { history.push('/'); }).then(loggedOut);
+            case AuthProvider.Facebook:
+                return this.facebookAuth.logout().then(() => { history.push('/'); }).then(loggedOut);
             default:
                 return Promise.resolve().then(loggedOut);
         }
         
-    }
-
-    public onSignInResponse = (history: H.History): Promise<void> => {
-        const authProvider = sessionStorage.getItem(AuthHelper.AuthProviderKey) as AuthProvider;
-        switch (authProvider) {
-            case AuthProvider.Google:
-                return this.openIdAuth.loggedIn(history);
-            default:
-                return Promise.resolve();
-        }
     }
 
     private onLogin = (user: User): void => {
