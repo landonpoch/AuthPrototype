@@ -6,6 +6,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import { httpJwtValidator, socketJwtValidator, registerIssuer } from "./auth/jwtValidator";
 import { googleIssuerKey, GoogleConfig } from "./auth/googleJwt";
+import { localIssuerKey, LocalConfig } from "./auth/localJwt";
 import fetch from "node-fetch";
 import secrets from "../secrets.json";
 import jwt from "jsonwebtoken";
@@ -53,6 +54,7 @@ app.get("/token", (req, res) => {
         // https://alexbilbie.com/guide-to-oauth-2-grants/ (see section 4.3)
         // This doesn't have to be done prior to functional facebook auth
     } else if (grantType === "facebook_access_token") {
+        // TODO: Cleanup components so they are more encapsulated
         const clientId = req.query.client_id;
         const accessToken = req.query.facebook_access_token;
         fetch(`${facebookHost}/oauth/access_token?client_id=${facebookClientId}&client_secret=${secrets.facebookClientSecret}&grant_type=client_credentials`)
@@ -71,6 +73,8 @@ app.get("/token", (req, res) => {
             })
             .then(r => r.json())
             .then(body => {
+                // TODO: consider expiration of locally issued jwts
+                // TODO: consider aud verification of locally issued jwts
                 const issuedJwt = jwt.sign({ ...body, iss: "https://localhost:3000" }, secrets.jwtSigningSecret);
                 res.send({ access_token: issuedJwt, token_type: "bearer" });
             })
@@ -91,6 +95,7 @@ app.get("/api/test", (req, res) => {
 });
 
 registerIssuer(googleIssuerKey, new GoogleConfig());
+registerIssuer(localIssuerKey, new LocalConfig());
 
 const server = https.createServer({
     key: fs.readFileSync("key.pem"),

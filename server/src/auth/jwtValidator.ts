@@ -2,7 +2,7 @@
 import { RequestHandler } from "express";
 import socketio from "socket.io";
 import jwt from "jsonwebtoken";
-import jwks from "jwks-rsa";
+import jwks from "jwks-rsa"; // TODO: Remove this reference and use a better suited generic interface
 import { filter, first } from "lodash";
 
 export interface Jwt {
@@ -116,8 +116,8 @@ const isValidToken = (token: string): Promise<JwtPayload> => {
     return getJwksClient()
         .then(client => hasValidSignature(token, header, client))
         .then(decoded => {
-            if (decoded.aud !== clientId) throw "Invalid client id";
-            if ((decoded.exp * 1000) < Date.now()) throw "Expired JWT";
+            if (decoded.aud && decoded.aud !== clientId) throw "Invalid client id";
+            if (decoded.exp && (decoded.exp * 1000) < Date.now()) throw "Expired JWT";
             return decoded;
         });
 };
