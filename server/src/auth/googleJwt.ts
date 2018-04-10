@@ -1,6 +1,6 @@
 import jwks from "jwks-rsa";
 import axios from "axios";
-import { IssuerConfig } from "./jwtValidator";
+import { IssuerConfig } from "./jwtHelper";
 
 const googleIssuerKey = "https://accounts.google.com";
 const googleWellKnownOidConfig = "https://accounts.google.com/.well-known/openid-configuration";

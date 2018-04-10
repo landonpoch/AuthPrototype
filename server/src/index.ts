@@ -4,16 +4,11 @@ import https from "https";
 import socketio from "socket.io";
 import express from "express";
 import bodyParser from "body-parser";
-import { httpJwtValidator, socketJwtValidator, registerIssuer } from "./auth/jwtValidator";
+import { httpJwtValidator, socketJwtValidator, registerIssuer } from "./auth/jwtHelper";
 import { googleIssuerKey, GoogleConfig } from "./auth/googleJwt";
-import { localIssuerKey, LocalConfig } from "./auth/localJwt";
-import fetch from "node-fetch";
-import secrets from "../secrets.json";
-import jwt from "jsonwebtoken";
+import { localIssuerKey, LocalConfig, issueJwt } from "./auth/localJwt";
+import { validateToken as validateFacebookToken, getTokenDetails as getFacebookTokenDetails } from "./auth/facebookTokenValidator";
 
-const facebookClientId = "174980966636737";
-const facebookHost = "https://graph.facebook.com/v2.12";
-let facebookAccessToken = "";
 const app = express();
 
 app.use(bodyParser.json());
@@ -54,28 +49,10 @@ app.get("/token", (req, res) => {
         // https://alexbilbie.com/guide-to-oauth-2-grants/ (see section 4.3)
         // This doesn't have to be done prior to functional facebook auth
     } else if (grantType === "facebook_access_token") {
-        // TODO: Cleanup components so they are more encapsulated
-        const clientId = req.query.client_id;
-        const accessToken = req.query.facebook_access_token;
-        fetch(`${facebookHost}/oauth/access_token?client_id=${facebookClientId}&client_secret=${secrets.facebookClientSecret}&grant_type=client_credentials`)
-            .then(r => r.json())
+        validateFacebookToken(req.query.client_id, req.query.facebook_access_token)
+            .then(() => getFacebookTokenDetails(req.query.facebook_access_token))
             .then(body => {
-                facebookAccessToken = body.access_token;
-                return fetch(`${facebookHost}/debug_token?input_token=${accessToken}&access_token=${facebookAccessToken}`);
-            })
-            .then(r => r.json())
-            .then(body => {
-                if (body && body.data && body.data.is_valid && body.data.app_id === facebookClientId) {
-                    return fetch(`${facebookHost}/me?fields=id,email,name&access_token=${accessToken}`);
-                } else {
-                    throw "Invalid token!";
-                }
-            })
-            .then(r => r.json())
-            .then(body => {
-                // TODO: consider expiration of locally issued jwts
-                // TODO: consider aud verification of locally issued jwts
-                const issuedJwt = jwt.sign({ ...body, iss: "https://localhost:3000" }, secrets.jwtSigningSecret);
+                const issuedJwt = issueJwt({ ...body, iss: "https://localhost:3000" });
                 res.send({ access_token: issuedJwt, token_type: "bearer" });
             })
             .catch((err: any) => {

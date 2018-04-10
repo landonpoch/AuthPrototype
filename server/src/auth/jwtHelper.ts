@@ -1,4 +1,3 @@
-
 import { RequestHandler } from "express";
 import socketio from "socket.io";
 import jwt from "jsonwebtoken";
@@ -41,8 +40,8 @@ const httpJwtValidator: RequestHandler = (req, res, next) => {
 
     isValidToken(token)
         .then(response => {
-            console.log(`jwt validation duration: ${Date.now() - now}`);
-            console.log(response);
+            // console.log(`jwt validation duration: ${Date.now() - now}`);
+            // console.log(response);
 
             // TODO: Ensure user in database in modular fashion
 
