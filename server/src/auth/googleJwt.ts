@@ -1,17 +1,13 @@
 import jwks from "jwks-rsa";
 import axios from "axios";
-import { IssuerConfig, JwtKeyGetter } from "./jwtValidator";
+import { IssuerConfig } from "./jwtValidator";
 
 const googleIssuerKey = "https://accounts.google.com";
 const googleWellKnownOidConfig = "https://accounts.google.com/.well-known/openid-configuration";
 
 class GoogleConfig implements IssuerConfig {
-    public clientId = "832067986394-it9obigmu3qnemg0em02pocq4q4e1gd8.apps.googleusercontent.com";
-    public getJwtKeyGetter = () => new GoogleJwtKeyGetter();
-}
-
-export class GoogleJwtKeyGetter implements JwtKeyGetter {
     private jwksClient?: jwks.JwksClient;
+    public clientId = "832067986394-it9obigmu3qnemg0em02pocq4q4e1gd8.apps.googleusercontent.com";
 
     public getKey = (id?: string): Promise<string> => {
         return new Promise<string>((resolve, reject) => {
