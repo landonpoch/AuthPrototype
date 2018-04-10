@@ -2,8 +2,11 @@
 import { RequestHandler } from "express";
 import socketio from "socket.io";
 import jwt from "jsonwebtoken";
-import jwks from "jwks-rsa"; // TODO: Remove this reference and use a better suited generic interface
 import { filter, first } from "lodash";
+
+export interface JwtKeyGetter {
+    getKey(id?: string): Promise<string>;
+}
 
 export interface Jwt {
     header: JwtHeader;
@@ -55,7 +58,7 @@ export interface IssuerMap {
 }
 export interface IssuerConfig {
     clientId: string;
-    getJwksClient: () => Promise<jwks.JwksClient>;
+    getJwtKeyGetter: () => JwtKeyGetter;
 }
 const issuerMap: IssuerMap = {};
 const registerIssuer = (iss: string, config: IssuerConfig): void => {
@@ -112,9 +115,8 @@ const isValidToken = (token: string): Promise<JwtPayload> => {
     const issuerConfig = issuerMap[payload.iss];
     if (!issuerConfig) throw "JWT issuer not supported";
 
-    const { clientId, getJwksClient } = issuerConfig;
-    return getJwksClient()
-        .then(client => hasValidSignature(token, header, client))
+    const { clientId, getJwtKeyGetter } = issuerConfig;
+    return hasValidSignature(token, header, getJwtKeyGetter())
         .then(decoded => {
             if (decoded.aud && decoded.aud !== clientId) throw "Invalid client id";
             if (decoded.exp && (decoded.exp * 1000) < Date.now()) throw "Expired JWT";
@@ -122,19 +124,13 @@ const isValidToken = (token: string): Promise<JwtPayload> => {
         });
 };
 
-const hasValidSignature = (token: string, header: JwtHeader, client: jwks.JwksClient): Promise<JwtPayload> => {
-    return new Promise<jwks.Jwk>((resolve, reject) => {
-        client.getSigningKey(header.kid, (err, key) => {
-            if (err) return reject(`Invalid signature: ${err.message}`);
-            resolve(key);
-        });
-    }).then(key => {
-        if (key && key.rsaPublicKey) {
-            const decoded = jwt.verify(token, key.rsaPublicKey, { algorithms: [header.alg] });
+const hasValidSignature = (token: string, header: JwtHeader, client: JwtKeyGetter): Promise<JwtPayload> => {
+    return client.getKey(header.kid)
+        .then(key => {
+            const decoded = jwt.verify(token, key, { algorithms: [header.alg] });
             if (decoded && typeof decoded === "object") return decoded as JwtPayload;
-        }
-        throw "Unable to get rsaPublicKey";
-    });
+            throw "Unable to get rsaPublicKey";
+        });
 };
 
 const decodeJwt = (token: string): Jwt => {

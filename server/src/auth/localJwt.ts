@@ -1,31 +1,14 @@
-import jwks from "jwks-rsa"; // TODO: Remove this reference and use a better suited generic interface
-import axios from "axios";
-import { IssuerConfig, registerIssuer } from "./jwtValidator";
+import { IssuerConfig, JwtKeyGetter } from "./jwtValidator";
 import secrets from "../../secrets.json";
 
 const localIssuerKey = "https://localhost:3000";
 class LocalConfig implements IssuerConfig {
-    private jwksClient?: jwks.JwksClient;
-
     public clientId = "";
-    public getJwksClient = () => {
-        return Promise.resolve(new LocalJwksClient() as jwks.JwksClient);
-    }
+    public getJwtKeyGetter = () => new LocalJwtKeyGetter();
 }
 
-class LocalJwksClient {
-    public getKeys = (cb: (err: Error, keys: jwks.Jwk[]) => any): any => {
-        //
-    }
-    public getSigningKeys = (cb: (err: Error, keys: jwks.Jwk[]) => any): any => {
-        //
-    }
-    public getSigningKey = (kid: string, cb: (err: Error, key: jwks.Jwk) => any): any => {
-        cb(undefined as any, {
-            kid: kid,
-            rsaPublicKey: secrets.jwtSigningSecret,
-        });
-    }
+export class LocalJwtKeyGetter implements JwtKeyGetter {
+    public getKey = (id?: string): Promise<string> => Promise.resolve(secrets.jwtSigningSecret);
 }
 
 export { localIssuerKey, LocalConfig };
