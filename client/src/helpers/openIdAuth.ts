@@ -44,7 +44,6 @@ export default class OpenIdAuth implements IAuthHelper {
     private createUserManager = (): UserManager => {
         const userManagerSettings = sessionStorage.getItem('UserManagerSettings');
         const userManager = new UserManager(userManagerSettings ? JSON.parse(userManagerSettings) : {});
-        // tslint:disable-next-line:max-line-length
         userManager.events.addUserLoaded(() => { this.loadUser(); });
         userManager.events.addUserUnloaded(this.onLogout);
         return userManager;
@@ -54,7 +53,8 @@ export default class OpenIdAuth implements IAuthHelper {
         return this.userManager.getUser().then(user => {
             if (user) {
                 this.onLogin({
-                    email: user.profile.name,
+                    displayName: user.profile.name,
+                    email: user.profile.email,
                     idToken: user.id_token,
                 });
             } 

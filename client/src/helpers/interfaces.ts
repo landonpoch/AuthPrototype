@@ -15,6 +15,7 @@ export interface IAuthHelper {
 }
 
 export interface User {
+    displayName?: string;
     email: string;
     idToken: string;
 }

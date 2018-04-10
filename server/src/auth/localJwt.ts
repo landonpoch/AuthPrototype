@@ -7,7 +7,7 @@ const localIssuerKey = "https://localhost:3000";
 class LocalConfig implements IssuerConfig {
     private jwksClient?: jwks.JwksClient;
 
-    public clientId = "832067986394-it9obigmu3qnemg0em02pocq4q4e1gd8.apps.googleusercontent.com";
+    public clientId = "";
     public getJwksClient = () => {
         return Promise.resolve(new LocalJwksClient() as jwks.JwksClient);
     }

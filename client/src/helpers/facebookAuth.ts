@@ -1,8 +1,11 @@
 import * as H from 'history';
+import { v4 as uuid } from 'uuid';
 import { IAuthHelper, User } from './interfaces';
 
 export default class FacebookAuth implements IAuthHelper {
     private static readonly FacebookAppId = '174980966636737';
+    private static readonly FacebookUserKey = 'FacebookUser';
+    private static readonly StateValidationKey = 'StateValidation';
 
     private onLogin: (user: User) => void;
     private onLogout: () => void;
@@ -13,13 +16,19 @@ export default class FacebookAuth implements IAuthHelper {
     }
 
     public init = (): Promise<void> => {
+        const userStr = sessionStorage.getItem(FacebookAuth.FacebookUserKey);
+        if (userStr) {
+            const user = JSON.parse(userStr) as User;
+            this.onLogin(user);
+        }
         return Promise.resolve();
     }
     
     public login = (redirectUrl?: string | undefined): Promise<void> => {
         const uri = encodeURI('https://localhost:3000/signinhandler');
-        // TODO: state validation with session storage and guids
-        const state = encodeURI(JSON.stringify({ randomState: 'bleh', redirectUrl: redirectUrl || '/' }));
+        const stateValidation = uuid();
+        sessionStorage.setItem(FacebookAuth.StateValidationKey, stateValidation);
+        const state = encodeURI(JSON.stringify({ randomState: stateValidation, redirectUrl: redirectUrl || '/' }));
         const loginUri = encodeURI(`https://www.facebook.com/dialog/oauth` +
             `?client_id=${FacebookAuth.FacebookAppId}` +
             `&redirect_uri=${uri}` +
@@ -37,8 +46,10 @@ export default class FacebookAuth implements IAuthHelper {
             state: JSON.parse(decodeURI(searchParams.get('state') || '{}')),
             expiresIn: searchParams.get('expires_in'),
         };
-        // tslint:disable-next-line:no-console
-        console.log(params);
+        
+        if (params.state.randomState !== sessionStorage.getItem(FacebookAuth.StateValidationKey)) {
+            return Promise.reject('State validation failed. Not authenticated');
+        }
 
         return fetch(`//localhost:8443/token` +
             `?grant_type=facebook_access_token` +
@@ -46,20 +57,16 @@ export default class FacebookAuth implements IAuthHelper {
             `&facebook_access_token=${params.accessToken}`)
             .then(r => r.json())
             .then(json => {
-                // TODO: Session storage persistence of user
-
-                this.onLogin({
-                    email: 'user@facebook.com', // TODO: Fix hardcoding
-                    idToken: json.access_token,
-                });
-
+                const userDetails = JSON.parse(atob(json.access_token.split('.')[1]));
+                const user = { displayName: userDetails.name, email: userDetails.email, idToken: json.access_token, };
+                sessionStorage.setItem(FacebookAuth.FacebookUserKey, JSON.stringify(user));
+                this.onLogin(user);
                 history.push(params.state.redirectUrl);
             });
     }
 
     public logout = (): Promise<void> => {
-        // TODO: Session storage removal of user
-
+        sessionStorage.removeItem(FacebookAuth.FacebookUserKey);
         this.onLogout();
         return Promise.resolve();
     }

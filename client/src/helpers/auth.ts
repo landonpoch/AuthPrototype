@@ -69,7 +69,7 @@ export default class AuthHelper implements EventHelper<AuthEvents> {
 
     public getDisplayName = (): string => {
         if (this.user) {
-            return this.user.email;
+            return this.user.displayName || this.user.email;
         } else {
             throw `Can't get display name. Not authenticated!`;
         }
