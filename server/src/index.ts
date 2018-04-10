@@ -7,7 +7,7 @@ import bodyParser from "body-parser";
 import { httpJwtValidator, socketJwtValidator, registerIssuer } from "./auth/jwtHelper";
 import { googleIssuerKey, GoogleConfig } from "./auth/googleJwt";
 import { localIssuerKey, LocalConfig, issueJwt } from "./auth/localJwt";
-import { validateToken as validateFacebookToken, getTokenDetails as getFacebookTokenDetails } from "./auth/facebookTokenValidator";
+import { validateToken, getTokenDetails } from "./auth/facebookTokenHelper";
 
 const app = express();
 
@@ -49,8 +49,8 @@ app.get("/token", (req, res) => {
         // https://alexbilbie.com/guide-to-oauth-2-grants/ (see section 4.3)
         // This doesn't have to be done prior to functional facebook auth
     } else if (grantType === "facebook_access_token") {
-        validateFacebookToken(req.query.client_id, req.query.facebook_access_token)
-            .then(() => getFacebookTokenDetails(req.query.facebook_access_token))
+        validateToken(req.query.client_id, req.query.facebook_access_token)
+            .then(() => getTokenDetails(req.query.facebook_access_token))
             .then(body => {
                 const issuedJwt = issueJwt({ ...body, iss: "https://localhost:3000" });
                 res.send({ access_token: issuedJwt, token_type: "bearer" });
