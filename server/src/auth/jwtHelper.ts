@@ -2,6 +2,7 @@ import { RequestHandler } from "express";
 import socketio from "socket.io";
 import jwt from "jsonwebtoken";
 import { filter, first } from "lodash";
+import { ensureUser } from "./user";
 
 const issuerMap: IssuerMap = {};
 const registerIssuer = (iss: string, config: IssuerConfig): void => {
@@ -32,7 +33,6 @@ const httpJwtValidator: RequestHandler = (req, res, next) => {
         res.end();
     };
 
-    const now = Date.now();
     const authHeader = req.get("authorization");
     if (!authHeader) return denyAccess();
     const [authType, token] = authHeader.split(" ");
@@ -40,12 +40,14 @@ const httpJwtValidator: RequestHandler = (req, res, next) => {
 
     isValidToken(token)
         .then(response => {
-            // console.log(`jwt validation duration: ${Date.now() - now}`);
-            // console.log(response);
-
-            // TODO: Ensure user in database in modular fashion
-
-            next();
+            ensureUser({
+                iss: response.iss,
+                sub: response.sub,
+                email: response.email,
+                name: response.name || response.email || "", // TODO: Move validation into the specific Jwt files
+            }).then(user => {
+                next();
+            });
         })
         .catch(err => {
             console.log(err);

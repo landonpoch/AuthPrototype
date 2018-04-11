@@ -1,5 +1,6 @@
 import fetch from "node-fetch";
 import secrets from "../../secrets.json";
+import { Token } from "./user";
 
 const facebookHost = "https://graph.facebook.com/v2.12";
 let facebookAccessToken = "";
@@ -26,13 +27,22 @@ const validateToken = (clientId: string, accessToken: string): Promise<void> => 
         });
 };
 
-const getTokenDetails = (accessToken: string): Promise<{
+interface TokenDetails {
     id: string;
     email: string;
     name: string;
-}> => {
+}
+const getTokenDetails = (accessToken: string): Promise<Token> => {
     return fetch(`${facebookHost}/me?fields=id,email,name&access_token=${accessToken}`)
-        .then(r => r.json());
+        .then(r => r.json())
+        .then((token: TokenDetails) => {
+            return {
+                iss: "https://www.facebook.com", // Facebook doesn't issue jwts so we just have to hardcode iss for them.
+                sub: token.id,
+                email: token.email,
+                name: token.name,
+            };
+        });
 };
 
 export { validateToken, getTokenDetails };

@@ -8,6 +8,7 @@ import { httpJwtValidator, socketJwtValidator, registerIssuer } from "./auth/jwt
 import { googleIssuerKey, GoogleConfig } from "./auth/googleJwt";
 import { localIssuerKey, LocalConfig, issueJwt } from "./auth/localJwt";
 import { validateToken, getTokenDetails } from "./auth/facebookTokenHelper";
+import { ensureUser } from "./auth/user";
 
 const app = express();
 
@@ -51,9 +52,11 @@ app.get("/token", (req, res) => {
     } else if (grantType === "facebook_access_token") {
         validateToken(req.query.client_id, req.query.facebook_access_token)
             .then(() => getTokenDetails(req.query.facebook_access_token))
-            .then(body => {
-                const issuedJwt = issueJwt({ ...body, iss: "https://localhost:3000" });
-                res.send({ access_token: issuedJwt, token_type: "bearer" });
+            .then(tokenDetails => {
+                ensureUser(tokenDetails).then(user => {
+                    const issuedJwt = issueJwt(user);
+                    res.send({ access_token: issuedJwt, token_type: "bearer" });
+                });
             })
             .catch((err: any) => {
                 console.log(err);
