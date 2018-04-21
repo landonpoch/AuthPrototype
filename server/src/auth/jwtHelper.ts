@@ -39,16 +39,8 @@ const httpJwtValidator: RequestHandler = (req, res, next) => {
     if (authType !== "Bearer") return denyAccess();
 
     isValidToken(token)
-        .then(response => {
-            ensureUser({
-                iss: response.iss,
-                sub: response.sub,
-                email: response.email,
-                name: response.name || response.email || "", // TODO: Move validation into the specific Jwt files
-            }).then(user => {
-                next();
-            });
-        })
+        .then(ensureUser) // TODO: See if there's a way to avoid DB hits if an account already exists
+        .then(user => { next(); }) // TODO: Add the user to the request
         .catch(err => {
             console.log(err);
             denyAccess();
@@ -59,21 +51,7 @@ const isValidToken = (token: string): Promise<JwtPayload> => {
     const { header, payload } = decodeJwt(token);
     const issuerConfig = issuerMap[payload.iss];
     if (!issuerConfig) throw "JWT issuer not supported";
-
-    return issuerConfig.getKey(header.kid)
-        .then(key => {
-            const decoded = jwt.verify(token, key, { algorithms: [header.alg] });
-            const isJwtPayload = (decoded: string | object): decoded is JwtPayload => {
-                return !!decoded && typeof decoded === "object";
-            };
-            if (isJwtPayload(decoded)) {
-                if (decoded.aud && decoded.aud !== issuerConfig.clientId) throw "Invalid client id";
-                if (decoded.exp && (decoded.exp * 1000) < Date.now()) throw "Expired JWT";
-                return decoded;
-            } else {
-                throw "Unable to get rsaPublicKey";
-            }
-        });
+    return issuerConfig.verifyJwt(token, header.alg, header.kid);
 };
 
 const decodeJwt = (token: string): Jwt => {
@@ -94,8 +72,7 @@ export interface IssuerMap {
     [iss: string]: IssuerConfig;
 }
 export interface IssuerConfig {
-    clientId?: string;
-    getKey(id?: string): Promise<string>;
+    verifyJwt(token: string, alg: "RS256" | "HS256", keyId?: string): Promise<JwtPayload>;
 }
 
 export interface Jwt {
@@ -109,36 +86,36 @@ export interface JwtHeader {
 }
 
 export interface JwtPayload {
-    /** Registered Claim - Issuer, the 3rd party that is issuing the JWT */
-    iss: string; // "https://accounts.google.com",
     /** Registered Claim - Audience, should be your registered client id */
-    aud: string; // "832067986394-it9obigmu3qnemg0em02pocq4q4e1gd8.apps.googleusercontent.com",
+    aud?: string;
+    /** Registered Claim - Issuer, the 3rd party that is issuing the JWT */
+    iss: string;
     /** Registered Claim - Subject, The 3rd party unique identifier for the user (subject) */
-    sub: string; // "115532470754936214388",
+    sub: string;
     /** Registered Claim - Expiration time for the JWT in NumericDate value */
-    exp: number; // 1521269562,
+    exp?: number;
     /** Registered Claim - Defines the time before which the JWT MUST NOT be accepted for processing */
     nbf?: number;
     /** Registered Claim - The time the JWT was issued. Can be used to determine the age of the JWT */
-    iat?: number; // 1521265962,
+    iat?: number;
     /** Registered Claim - Unique identifier for the JWT. Can be used to prevent the JWT from being replayed. This is helpful for a one time use token. */
-    jti?: string; // "228f7ad064db58b4a62f211792fed978bf1158fa",
+    jti?: string;
 
     /** A display name for the user */
-    name?: string; // "Landon Poch",
+    name: string;
     /**	Given name(s) or first name(s) */
-    given_name?: string; // "Landon",
+    given_name?: string;
     /** Surname(s) or last name(s) */
-    family_name?: string; // "Poch",
+    family_name?: string;
     /** Image url for the user */
-    picture?: string; // "https://lh6.googleusercontent.com/-PRelXpjOo2E/AAAAAAAAAAI/AAAAAAAAAAA/uD4f4GOi_QU/s96-c/photo.jpg",
+    picture?: string;
     /** Authorized party - the party to which the ID Token was issued */
-    azp?: string; // "832067986394-it9obigmu3qnemg0em02pocq4q4e1gd8.apps.googleusercontent.com",
+    azp?: string;
     /** Value used to associate a Client session with an ID Token */
-    nonce?: string; // "cdf98f0a06ac4be99cdbc7b29c19b9cd",
+    nonce?: string;
     /** Access Token hash value */
-    at_hash?: string; // "RXRmkFRXShjP4nvymUmskw",
-    locale?: string; // "en"
-    email?: string;
+    at_hash?: string;
+    locale?: string;
+    email: string;
     email_verified?: boolean;
 }
