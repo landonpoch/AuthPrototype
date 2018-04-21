@@ -52,11 +52,10 @@ app.get("/token", (req, res) => {
     } else if (grantType === "facebook_access_token") {
         validateToken(req.query.client_id, req.query.facebook_access_token)
             .then(() => getTokenDetails(req.query.facebook_access_token))
-            .then(tokenDetails => {
-                ensureUser(tokenDetails).then(user => {
-                    const issuedJwt = issueJwt(user);
-                    res.send({ access_token: issuedJwt, token_type: "bearer" });
-                });
+            .then(ensureUser)
+            .then(user => {
+                const issuedJwt = issueJwt(user);
+                res.send({ access_token: issuedJwt, token_type: "bearer" });
             })
             .catch((err: any) => {
                 console.log(err);
@@ -88,7 +87,9 @@ io.use(socketJwtValidator)
     .on("connection", (socket) => {
         console.log("Connection!");
         socket.emit("thing", "You are connected!");
-        const interval = setInterval(() => { socket.emit("thing", new Date().toString()); }, 1000);
+        const interval = setInterval(() => {
+            socket.emit("thing", `UserId: ${(socket as any).user.id} Time: ${new Date().toString()}`);
+        }, 1000);
         socket.on("disconnect", () => {
             clearInterval(interval);
             console.log("Disconnected!");

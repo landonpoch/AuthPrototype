@@ -12,8 +12,9 @@ const registerIssuer = (iss: string, config: IssuerConfig): void => {
 const socketJwtValidator = (socket: socketio.Socket, next: (err?: any) => void): void => {
     if (socket.handshake.query && socket.handshake.query.token) {
         isValidToken(socket.handshake.query.token)
-            .then(jwtPayload => {
-                (socket as any)["decoded"] = jwtPayload;
+            .then(ensureUser)
+            .then(user => {
+                (socket as any)["user"] = user;
                 next();
             })
             .catch(err => {
@@ -39,8 +40,11 @@ const httpJwtValidator: RequestHandler = (req, res, next) => {
     if (authType !== "Bearer") return denyAccess();
 
     isValidToken(token)
-        .then(ensureUser) // TODO: See if there's a way to avoid DB hits if an account already exists
-        .then(user => { next(); }) // TODO: Add the user to the request
+        .then(ensureUser)
+        .then(user => {
+            (req as any)["user"] = user;
+            next();
+        })
         .catch(err => {
             console.log(err);
             denyAccess();
