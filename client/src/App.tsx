@@ -58,7 +58,10 @@ export default class App extends React.Component<Props, State> {
                 <section className="content">
                     <div className="content-body">
                         <Route exact={true} path="/" component={Home} />
-                        <Route path="/create-account" component={CreateAccount} />
+                        <Route
+                            path="/create-account"
+                            render={props => <CreateAccount auth={this.props.auth} {...props} />}
+                        />
                         <PrivateRoute path="/protected" auth={this.props.auth} component={Protected} />
                         <Route path="/login" render={props => <Login auth={this.props.auth} {...props} />} />
                         <Route

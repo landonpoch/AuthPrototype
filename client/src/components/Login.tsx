@@ -9,7 +9,9 @@ const googleLoginButton = require('../btn_google_signin_light_normal_web.png');
 
 interface State {
     email: string;
+    invalidEmailMsg?: string;
     password: string;
+    invalidPasswordMsg?: string;
 }
 
 // tslint:disable-next-line:no-any
@@ -20,7 +22,7 @@ interface Props extends RouteComponentProps<any> {
 export default class Login extends React.Component<Props, State> {
     constructor(props: Props) {
         super(props);
-        this.state = { email: '', password: '' };
+        this.state = { email: '', password: '', };
     }
 
     handleInputChange = (event: React.FormEvent<HTMLInputElement>) => {
@@ -39,6 +41,46 @@ export default class Login extends React.Component<Props, State> {
         }
     }
 
+    validateEmail = (email: string) => {
+        // tslint:disable-next-line:max-line-length
+        var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+        return re.test(String(email).toLowerCase());
+    }
+
+    validatePassword = (password: string) => {
+        var re = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[$@$!%*?&])[A-Za-z\d$@$!%*?&]{8,}/;
+        return re.test(String(password));
+    }
+
+    handleValidation = (event: React.FormEvent<HTMLInputElement>) => {
+        const target = event.currentTarget;
+        const name = target.name;
+        // const value = target.value.trim();
+        switch (name) {
+            case 'email':
+                if (!this.state.email) {
+                    this.setState({invalidEmailMsg: 'Email is required'});
+                } else if (!this.validateEmail(this.state.email)) {
+                    this.setState({invalidEmailMsg: 'Must be a valid email'});
+                } else {
+                    this.setState({invalidEmailMsg: undefined});
+                }
+                break;
+            case 'password':
+                if (!this.state.password) {
+                    this.setState({invalidPasswordMsg: 'Password is required'});
+                } else if (!this.validatePassword(this.state.password)) {
+                    // tslint:disable-next-line:max-line-length
+                    this.setState({invalidPasswordMsg: 'Password must be at least 8 characters long, alphanumeric and contain at least one special character'});
+                } else {
+                    this.setState({invalidPasswordMsg: undefined});
+                }
+                break;
+            default:
+                throw 'Unsupported input name';
+        }
+    }
+
     render() {
         return (
             <React.Fragment>
@@ -48,21 +90,29 @@ export default class Login extends React.Component<Props, State> {
                 <img src={facebookLoginButton} onClick={this.facebookLogin} width="192" />
                 <h3>Username and Password</h3>
                 <form className="signin" onSubmit={this.localLogin}>
-                    <label>Email:</label>
+                    <label className={this.state.invalidEmailMsg ? 'invalid' : ''}>
+                        Email{this.state.invalidEmailMsg ? ` - ${this.state.invalidEmailMsg}` : ''}
+                    </label>
                     <input
                         type="text"
                         name="email"
                         autoComplete="username email"
+                        className={this.state.invalidEmailMsg ? 'invalid' : ''}
                         value={this.state.email}
+                        onBlur={this.handleValidation}
                         onChange={this.handleInputChange}
                     />
                     
-                    <label>Password:</label>
+                    <label className={this.state.invalidPasswordMsg ? 'invalid' : ''}>
+                        Password{this.state.invalidPasswordMsg ? ` - ${this.state.invalidPasswordMsg}` : ''}
+                    </label>
                     <input
                         type="password"
                         name="password"
                         autoComplete="new-password"
+                        className={this.state.invalidPasswordMsg ? 'invalid' : ''}
                         value={this.state.password}
+                        onBlur={this.handleValidation}
                         onChange={this.handleInputChange} 
                     />
                     <input type="submit" value="Submit" />
@@ -84,6 +134,12 @@ export default class Login extends React.Component<Props, State> {
 
     private localLogin = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
+        const isValid = !(this.state.invalidEmailMsg || this.state.invalidPasswordMsg);
+        
+        if (!isValid) {
+            return undefined;
+        }
         
         return fetch(`//localhost:8443/token` +
             `?grant_type=password` +
