@@ -39,18 +39,6 @@ export default class Login extends React.Component<Props, State> {
         }
     }
 
-    handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        
-        fetch(`//localhost:8443/token` +
-            `?grant_type=password` +
-            `&username=${this.state.email}` +
-            `&password=${this.state.password}`)
-        .then(response => {
-            // 
-        });
-    }
-
     render() {
         return (
             <React.Fragment>
@@ -59,7 +47,7 @@ export default class Login extends React.Component<Props, State> {
                 <h3>Facebook Login</h3>
                 <img src={facebookLoginButton} onClick={this.facebookLogin} width="192" />
                 <h3>Username and Password</h3>
-                <form className="signin" onSubmit={this.handleSubmit}>
+                <form className="signin" onSubmit={this.localLogin}>
                     <label>Email:</label>
                     <input
                         type="text"
@@ -92,5 +80,39 @@ export default class Login extends React.Component<Props, State> {
     private facebookLogin = () => {
         const redirectUrl: string = this.props.location && this.props.location.state && this.props.location.state.from;
         return this.props.auth.onCreateSignInRequest(AuthProvider.Facebook, redirectUrl);
+    }
+
+    private localLogin = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        
+        return fetch(`//localhost:8443/token` +
+            `?grant_type=password` +
+            `&username=${this.state.email}` +
+            `&password=${this.state.password}`)
+        .then(r => {
+            if (r.status === 200) {
+                return r.json();
+            } else if (r.status === 401) {
+                throw 'unauthorized';
+            } else {
+                throw 'unexpected http status code';
+            }
+        })
+        .then(json => {
+            const userDetails = JSON.parse(atob(json.access_token.split('.')[1]));
+            const user = { displayName: userDetails.name, email: userDetails.email, idToken: json.access_token, };
+            sessionStorage.setItem('LocalUser', JSON.stringify(user));
+            const redirectUrl: string = this.props.location
+                && this.props.location.state && this.props.location.state.from;
+            return this.props.auth.onCreateSignInRequest(AuthProvider.Local, redirectUrl)
+                .then(() => this.props.auth.onSignInResponse(this.props.history));
+        })
+        .catch(err => {
+            if (err === 'unauthorized') {
+                // TODO: Handle
+            } else {
+                // TODO: Handle
+            }
+        });
     }
 }

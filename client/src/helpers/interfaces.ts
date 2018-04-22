@@ -3,6 +3,7 @@ import * as H from 'history';
 const AuthProvider = {
     Google: 'Google' as 'Google',
     Facebook: 'Facebook' as 'Facebook',
+    Local: 'Local' as 'Local',
 };
 type AuthProvider = keyof typeof AuthProvider;
 export { AuthProvider };

@@ -82,13 +82,13 @@ const loginWithLocalCredentials = (email: string, password: string): Promise<Use
                 return compare(password, result.rows[0].password_hash)
                     .then(passwordMatches => {
                         if (passwordMatches) {
-                            const getUser = "SELECT email, name FROM user WHERE id = ?";
+                            const getUser = "SELECT id, email, name FROM user WHERE id = ?";
                             return client.execute(getUser, [ result.rows[0].user_id ], { prepare: true });
                         }
                         throw "Invalid password";
                     });
             }
-            throw "User doesn't exist";
+            throw "Invalid username";
         })
         .then(result => {
             if (result.rowLength > 0) {
@@ -98,7 +98,7 @@ const loginWithLocalCredentials = (email: string, password: string): Promise<Use
                     email: result.rows[0].email,
                 };
             }
-            throw "User doesn't exist";
+            throw "Invalid username";
         });
 };
 

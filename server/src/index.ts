@@ -60,8 +60,11 @@ app.get("/token", (req, res) => {
                 res.send({ access_token: issuedJwt, token_type: "bearer" });
             })
             .catch((err: any) => {
-                console.log(err);
-                res.sendStatus(500); // TODO: Different codes for different cases
+                if (err === "Invalid username" || err === "Invalid password") {
+                    res.sendStatus(401);
+                } else {
+                    res.sendStatus(500);
+                }
             });
     } else if (grantType === "facebook_access_token") {
         validateToken(req.query.client_id, req.query.facebook_access_token)

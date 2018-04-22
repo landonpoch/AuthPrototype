@@ -4,6 +4,7 @@ import * as socketio from 'socket.io-client';
 import { IAuthHelper, AuthProvider, User } from './interfaces';
 import OpenIdAuth from './openIdAuth';
 import FacebookAuth from './facebookAuth';
+import LocalAuth from './localAuth';
 
 type Listener = () => void;
 export interface EventHelper<T extends string> {
@@ -34,10 +35,12 @@ export default class AuthHelper implements EventHelper<AuthEvents> {
     private user?: User;
     private facebookAuth: IAuthHelper;
     private openIdAuth: IAuthHelper;
+    private localAuth: IAuthHelper;
 
     constructor() {
         this.facebookAuth = new FacebookAuth(this.onLogin, this.onLogout);
         this.openIdAuth = new OpenIdAuth(this.onLogin, this.onLogout);
+        this.localAuth = new LocalAuth(this.onLogin, this.onLogout);
         this.listenerIndexes = this.constructListnerIndexes();
         this.listeners = this.constructListeners();
     }
@@ -49,6 +52,8 @@ export default class AuthHelper implements EventHelper<AuthEvents> {
                 return this.openIdAuth.init();
             case AuthProvider.Facebook:
                 return this.facebookAuth.init();
+            case AuthProvider.Local:
+                return this.localAuth.init();
             default:
                 return Promise.resolve();
         }
@@ -101,6 +106,9 @@ export default class AuthHelper implements EventHelper<AuthEvents> {
             case AuthProvider.Facebook:
                 sessionStorage.setItem(AuthHelper.AuthProviderKey, AuthProvider.Facebook);
                 return this.facebookAuth.login(redirectUrl);
+            case AuthProvider.Local:
+                sessionStorage.setItem(AuthHelper.AuthProviderKey, AuthProvider.Local);
+                return this.localAuth.login(redirectUrl);
             default:
                 return Promise.resolve();
         }
@@ -113,6 +121,8 @@ export default class AuthHelper implements EventHelper<AuthEvents> {
                 return this.openIdAuth.loggedIn(history);
             case AuthProvider.Facebook:
                 return this.facebookAuth.loggedIn(history);
+            case AuthProvider.Local:
+                return this.localAuth.loggedIn(history);
             default:
                 return Promise.resolve();
         }
@@ -126,6 +136,8 @@ export default class AuthHelper implements EventHelper<AuthEvents> {
                 return this.openIdAuth.logout().then(() => { history.push('/'); }).then(loggedOut);
             case AuthProvider.Facebook:
                 return this.facebookAuth.logout().then(() => { history.push('/'); }).then(loggedOut);
+            case AuthProvider.Local:
+                return this.localAuth.logout().then(() => { history.push('/'); }).then(loggedOut);
             default:
                 return Promise.resolve().then(loggedOut);
         }
