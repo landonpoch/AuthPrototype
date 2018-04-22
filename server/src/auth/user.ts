@@ -15,10 +15,10 @@ export interface User {
 }
 
 const client = new Client({ contactPoints: ["localhost"], keyspace: "auth_prototype" });
-
+const LocalIss = "https://localhost:3000";
 const ensureUser = (token: Token): Promise<User> => {
     // Local users are assumed to already be in the database
-    if (token.iss === "https://localhost:3000") {
+    if (token.iss === LocalIss) {
         return Promise.resolve({
             id: token.sub,
             displayName: token.name,
@@ -26,8 +26,8 @@ const ensureUser = (token: Token): Promise<User> => {
         });
     }
 
-    const getUserQuery = "SELECT user_id FROM token_link WHERE iss = ? AND sub = ?";
-    return client.execute(getUserQuery, [ token.iss, token.sub ], { prepare: true }).then(result => {
+    const getUserIdQuery = "SELECT user_id FROM token_link WHERE iss = ? AND email = ?";
+    return client.execute(getUserIdQuery, [ token.iss, token.email ], { prepare: true }).then(result => {
         if (result.rowLength > 0) {
             return {
                 id: result.rows[0].user_id,
@@ -39,7 +39,7 @@ const ensureUser = (token: Token): Promise<User> => {
         const id = uuid();
         return client.batch([
             { query: "INSERT INTO user (id, email, name) VALUES (?, ?, ?)", params: [id, token.email, token.name], },
-            { query: "INSERT INTO token_link (iss, sub, user_id) VALUES (?, ?, ?)", params: [token.iss, token.sub, id], }
+            { query: "INSERT INTO token_link (iss, email, sub, user_id) VALUES (?, ?, ?, ?)", params: [token.iss, token.email, token.sub, id], }
         ], { prepare: true }).then(result => ({
             id: id,
             displayName: token.name,
@@ -48,4 +48,29 @@ const ensureUser = (token: Token): Promise<User> => {
     });
 };
 
-export { ensureUser };
+const createLocalUser = (email: string, password: string): Promise<User> => {
+    const getUserIdQuery = "SELECT user_id FROM token_link WHERE iss = ? AND email = ?";
+    return client.execute(getUserIdQuery, [ LocalIss, email ], { prepare: true })
+        .then(result => {
+            if (result.rowLength > 0)
+                throw "User already exists";
+
+            // TODO: Hash the password and store into the new password_hash table.
+            const id = uuid();
+            return client.batch([
+                { query: "INSERT INTO user (id, email, name) VALUES (?, ?, ?)", params: [id, email, email], },
+                { query: "INSERT INTO token_link (iss, email, sub, user_id) VALUES (?, ?, ?, ?)", params: [LocalIss, email, id, id], }
+            ], { prepare: true }).then(result => ({
+                id: id,
+                displayName: email,
+                email: email,
+            }));
+        });
+};
+
+const loginWithLocalCredentials = (email: string, password: string): Promise<User> => {
+    // TODO: lookup the user from the new password_hash table and return it
+    throw "Not implemented";
+};
+
+export { ensureUser, createLocalUser, loginWithLocalCredentials };

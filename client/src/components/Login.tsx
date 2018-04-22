@@ -2,18 +2,47 @@ import * as React from 'react';
 import { RouteComponentProps } from 'react-router-dom';
 import AuthHelper from '../helpers/auth';
 import { AuthProvider } from '../helpers/interfaces';
+import { Link } from 'react-router-dom';
 
 const facebookLoginButton = require('../facebook.png');
 const googleLoginButton = require('../btn_google_signin_light_normal_web.png');
+
+interface State {
+    email: string;
+    password: string;
+}
 
 // tslint:disable-next-line:no-any
 interface Props extends RouteComponentProps<any> {
     auth: AuthHelper;
 }
 
-export default class Login extends React.Component<Props, {}> {
+export default class Login extends React.Component<Props, State> {
     constructor(props: Props) {
         super(props);
+        this.state = { email: '', password: '' };
+    }
+
+    handleInputChange = (event: React.FormEvent<HTMLInputElement>) => {
+        const target = event.currentTarget;
+        const name = target.name;
+        const value = target.value.trim();
+        switch (name) {
+            case 'email':
+                this.setState({[name]: value});
+                break;
+            case 'password':
+                this.setState({[name]: value});
+                break;
+            default:
+                throw 'Unsupported input name';
+        }
+    }
+
+    handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        // tslint:disable-next-line:no-console
+        console.log('Submitted!');
     }
 
     render() {
@@ -24,7 +53,27 @@ export default class Login extends React.Component<Props, {}> {
                 <h3>Facebook Login</h3>
                 <img src={facebookLoginButton} onClick={this.facebookLogin} width="192" />
                 <h3>Username and Password</h3>
-                <span>TODO!</span>
+                <form className="signin" onSubmit={this.handleSubmit}>
+                    <label>Email:</label>
+                    <input
+                        type="text"
+                        name="email"
+                        autoComplete="username email"
+                        value={this.state.email}
+                        onChange={this.handleInputChange}
+                    />
+                    
+                    <label>Password:</label>
+                    <input
+                        type="password"
+                        name="password"
+                        autoComplete="new-password"
+                        value={this.state.password}
+                        onChange={this.handleInputChange} 
+                    />
+                    <input type="submit" value="Submit" />
+                </form>
+                <span>Don't have an account? <Link to="/create-account">Sign Up</Link></span>
             </React.Fragment>
         );
     }

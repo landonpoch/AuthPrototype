@@ -8,7 +8,7 @@ import { httpJwtValidator, socketJwtValidator, registerIssuer } from "./auth/jwt
 import { googleIssuerKey, GoogleConfig } from "./auth/googleJwt";
 import { localIssuerKey, LocalConfig, issueJwt } from "./auth/localJwt";
 import { validateToken, getTokenDetails } from "./auth/facebookTokenHelper";
-import { ensureUser } from "./auth/user";
+import { ensureUser, createLocalUser, loginWithLocalCredentials } from "./auth/user";
 
 const app = express();
 
@@ -26,17 +26,27 @@ app.get("/", (req, res) => {
     res.send("hello world");
 });
 
+app.options("/account/create", (req, res) => {
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Access-Control-Allow-Methods", "PUT");
+    res.sendStatus(200);
+});
+
 // https://hackernoon.com/your-node-js-authentication-tutorial-is-wrong-f1a3bf831a46
 app.put("/account/create", (req, res) => {
     const username = req.body.username; // Should be an email
     const password = req.body.password;
-
-    // TODO: Create account and issue 1st party JWT
-    // This doesn't have to be done prior to functional facebook auth
+    createLocalUser(username, password)
+        .then(user => {
+            // TODO: email confirmation should probably occur prior to returning jwt.
+            const issuedJwt = issueJwt(user);
+            res.send({ access_token: issuedJwt, token_type: "bearer" });
+        })
+        .catch(console.log);
 });
 
 app.post("/account/reset", (req, res) => {
-
+    // TODO: email reset
 });
 
 app.get("/token", (req, res) => {
@@ -44,11 +54,11 @@ app.get("/token", (req, res) => {
     if (grantType === "password") {
         const username = req.query.username;
         const password = req.query.password;
-        // TODO: Validate username and password
-        // Issue 1st party JWT
-        // https://tools.ietf.org/html/rfc6749#section-4.3
-        // https://alexbilbie.com/guide-to-oauth-2-grants/ (see section 4.3)
-        // This doesn't have to be done prior to functional facebook auth
+        loginWithLocalCredentials(username, password)
+            .then(user => {
+                const issuedJwt = issueJwt(user);
+                res.send({ access_token: issuedJwt, token_type: "bearer" });
+            });
     } else if (grantType === "facebook_access_token") {
         validateToken(req.query.client_id, req.query.facebook_access_token)
             .then(() => getTokenDetails(req.query.facebook_access_token))

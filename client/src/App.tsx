@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { BrowserRouter as Router, Route, NavLink } from 'react-router-dom';
 import Home from './components/Home';
+import CreateAccount from './components/CreateAccount';
 import UserState from './components/UserState';
 import Login from './components/Login';
 import SigninHandler from './components/SigninHandler';
@@ -57,6 +58,7 @@ export default class App extends React.Component<Props, State> {
                 <section className="content">
                     <div className="content-body">
                         <Route exact={true} path="/" component={Home} />
+                        <Route path="/create-account" component={CreateAccount} />
                         <PrivateRoute path="/protected" auth={this.props.auth} component={Protected} />
                         <Route path="/login" render={props => <Login auth={this.props.auth} {...props} />} />
                         <Route
