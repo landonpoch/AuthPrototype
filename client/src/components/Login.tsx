@@ -41,8 +41,14 @@ export default class Login extends React.Component<Props, State> {
 
     handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        // tslint:disable-next-line:no-console
-        console.log('Submitted!');
+        
+        fetch(`//localhost:8443/token` +
+            `?grant_type=password` +
+            `&username=${this.state.email}` +
+            `&password=${this.state.password}`)
+        .then(response => {
+            // 
+        });
     }
 
     render() {

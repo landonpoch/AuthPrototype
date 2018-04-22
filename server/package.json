@@ -15,9 +15,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/bcrypt": "^1.0.0",
     "@types/cassandra-driver": "^3.4.0",
     "@types/uuid": "^3.4.3",
     "axios": "^0.18.0",
+    "bcrypt": "^2.0.1",
     "cassandra-driver": "^3.5.0",
     "express": "^4.16.2",
     "jsonwebtoken": "^8.2.0",
