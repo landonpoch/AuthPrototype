@@ -44,14 +44,54 @@ export default class CreateAcocunt extends React.Component<Props, State> {
     }
 
     validateEmail = (email: string) => {
-        // tslint:disable-next-line:max-line-length
-        var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-        return re.test(String(email).toLowerCase());
+        const validateEmailFormat = () => {
+            // tslint:disable-next-line:max-line-length
+            return /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+                .test(String(email).toLowerCase());
+        };
+
+        let isValid = false;
+        if (!email) {
+            this.setState({invalidEmailMsg: 'Email is required'});
+        } else if (!validateEmailFormat()) {
+            this.setState({invalidEmailMsg: 'Must be a valid email'});
+        } else {
+            this.setState({invalidEmailMsg: undefined});
+            isValid = true;
+        }
+        return isValid;
     }
 
     validatePassword = (password: string) => {
-        var re = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[$@$!%*?&])[A-Za-z\d$@$!%*?&]{8,}/;
-        return re.test(String(password));
+        const validatePasswordFormat = () => {
+            return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[$@$!%*?&])[A-Za-z\d$@$!%*?&]{8,}/
+                .test(String(password));
+        };
+
+        let isValid = false;
+        if (!password) {
+            this.setState({invalidPasswordMsg: 'Password is required'});
+        } else if (!validatePasswordFormat()) {
+            // tslint:disable-next-line:max-line-length
+            this.setState({invalidPasswordMsg: 'Password must be at least 8 characters long, alphanumeric and contain at least one special character'});
+        } else {
+            this.setState({invalidPasswordMsg: undefined});
+            isValid = true;
+        }
+        return isValid;
+    }
+
+    validatePasswordConfirmation = (confirmation: string) => {
+        let isValid = false;
+        if (!confirmation) {
+            this.setState({invalidConfirmationMsg: 'Password Confirmation is required'});
+        } else if (this.state.password !== confirmation) {
+            this.setState({invalidConfirmationMsg: 'Passwords must match'});
+        } else {
+            this.setState({invalidConfirmationMsg: undefined});
+            isValid = true;
+        }
+        return isValid;
     }
 
     handleValidation = (event: React.FormEvent<HTMLInputElement>) => {
@@ -60,45 +100,31 @@ export default class CreateAcocunt extends React.Component<Props, State> {
         // const value = target.value.trim();
         switch (name) {
             case 'email':
-                if (!this.state.email) {
-                    this.setState({invalidEmailMsg: 'Email is required'});
-                } else if (!this.validateEmail(this.state.email)) {
-                    this.setState({invalidEmailMsg: 'Must be a valid email'});
-                } else {
-                    this.setState({invalidEmailMsg: undefined});
-                }
+                this.validateEmail(this.state.email);
                 break;
             case 'password':
-                if (!this.state.password) {
-                    this.setState({invalidPasswordMsg: 'Password is required'});
-                } else if (!this.validatePassword(this.state.password)) {
-                    // tslint:disable-next-line:max-line-length
-                    this.setState({invalidPasswordMsg: 'Password must be at least 8 characters long, alphanumeric and contain at least one special character'});
-                } else {
-                    this.setState({invalidPasswordMsg: undefined});
-                }
+                this.validatePassword(this.state.password);
                 break;
             case 'confirmation':
-                if (!this.state.confirmation) {
-                    this.setState({invalidConfirmationMsg: 'Password Confirmation is required'});
-                } else if (this.state.password !== this.state.confirmation) {
-                    this.setState({invalidConfirmationMsg: 'Passwords must match'});
-                } else {
-                    this.setState({invalidConfirmationMsg: undefined});
-                }
+                this.validatePasswordConfirmation(this.state.confirmation);
                 break;
             default:
                 throw 'Unsupported input name';
         }
     }
 
+    isValidForm = () => {
+        return [
+            this.validateEmail(this.state.email),
+            this.validatePassword(this.state.password),
+            this.validatePasswordConfirmation(this.state.confirmation),
+        ].every(Boolean);
+    }
+
     handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        const isValid = !(this.state.invalidEmailMsg
-            || this.state.invalidPasswordMsg || this.state.invalidConfirmationMsg);
-        
-        if (!isValid) {
+        if (!this.isValidForm()) {
             this.setState({ errorMsg: 'Please correct errors and try again.' });
             return Promise.resolve();
         }
