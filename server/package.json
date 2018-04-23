@@ -17,6 +17,7 @@
   "dependencies": {
     "@types/bcrypt": "^1.0.0",
     "@types/cassandra-driver": "^3.4.0",
+    "@types/nodemailer": "^4.6.0",
     "@types/uuid": "^3.4.3",
     "axios": "^0.18.0",
     "bcrypt": "^2.0.1",
@@ -26,6 +27,7 @@
     "jwks-rsa": "^1.2.1",
     "lodash": "^4.17.5",
     "node-fetch": "^2.1.2",
+    "nodemailer": "^4.6.4",
     "socket.io": "^2.0.4",
     "uuid": "^3.2.1"
   },

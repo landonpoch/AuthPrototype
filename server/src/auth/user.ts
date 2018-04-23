@@ -1,6 +1,7 @@
 import { v4 as uuid } from "uuid";
 import { Client } from "cassandra-driver";
 import { hash, compare } from "bcrypt";
+import { createTestAccount, createTransport, getTestMessageUrl } from "nodemailer";
 
 export interface Token {
     iss: string;
@@ -52,25 +53,77 @@ const ensureUser = (token: Token): Promise<User> => {
     });
 };
 
-const createLocalUser = (email: string, password: string): Promise<User> => {
+const createLocalUser = (id: string, email: string, passwordHash: string): Promise<User> => {
+    console.log(`createLocalUser - id: ${id} email: ${email} passwordHash: ${passwordHash}`);
     const getUserIdQuery = "SELECT user_id FROM token_link WHERE iss = ? AND email = ?";
     return client.execute(getUserIdQuery, [ LocalIss, email ], { prepare: true })
         .then(result => {
             if (result.rowLength > 0)
                 throw "User already exists";
 
-            return hash(password, SaltRounds).then(passwordHash => {
-                const id = uuid();
-                return client.batch([
-                    { query: "INSERT INTO user (id, email, name) VALUES (?, ?, ?)", params: [id, email, email], },
-                    { query: "INSERT INTO password_hash (email, password_hash, user_id) VALUES (?, ?, ?)", params: [email, passwordHash, id], },
-                    { query: "INSERT INTO token_link (iss, email, sub, user_id) VALUES (?, ?, ?, ?)", params: [LocalIss, email, id, id], }
-                ], { prepare: true }).then(result => ({
-                    id: id,
-                    displayName: email,
-                    email: email,
-                }));
+            return client.batch([
+                { query: "INSERT INTO user (id, email, name) VALUES (?, ?, ?)", params: [id, email, email], },
+                { query: "INSERT INTO password_hash (email, password_hash, user_id) VALUES (?, ?, ?)", params: [email, passwordHash, id], },
+                { query: "INSERT INTO token_link (iss, email, sub, user_id) VALUES (?, ?, ?, ?)", params: [LocalIss, email, id, id], }
+            ], { prepare: true }).then(result => ({
+                id: id,
+                displayName: email,
+                email: email,
+            }));
+        });
+};
+
+const createPendingUser = (email: string, password: string): Promise<void> => {
+    const id = uuid();
+    const getUserIdQuery = "SELECT user_id FROM token_link WHERE iss = ? AND email = ?";
+    return client.execute(getUserIdQuery, [ LocalIss, email ], { prepare: true })
+        .then(result => result.rowLength > 0 ? Promise.reject("User already exists") : Promise.resolve())
+        .then(() => hash(password, SaltRounds))
+        .then(passwordHash => {
+            const user_id = uuid();
+            const createPendingUser =
+                "INSERT INTO pending_user (id, email, password_hash, user_id) VALUES (?, ?, ?, ?) USING TTL 300";
+            return client.execute(createPendingUser, [id, email, passwordHash, user_id], { prepare: true });
+        })
+        .then(result => createTestAccount())
+        .then(account => {
+            let transporter = createTransport({
+                host: "smtp.ethereal.email",
+                port: 587,
+                secure: false,
+                auth: {
+                    user: account.user,
+                    pass: account.pass
+                }
             });
+            let mailOptions = {
+                from: `"Fred Foo 👻" <foo@example.com>`,
+                to: email,
+                subject: "Hello ✔",
+                text: "Hello world?",
+                html: `<a href="https://localhost:3000/confirm-account?token=${id}">Confirm your account</a>`
+            };
+            return transporter.sendMail(mailOptions);
+        })
+        .then(info => {
+            console.log("Message sent: %s", info.messageId);
+            // Preview only available when sending through an Ethereal account
+            console.log("Preview URL: %s", getTestMessageUrl(info));
+            // Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
+            // Preview URL: https://ethereal.email/message/WaQKMgKddxQDoou...
+        });
+};
+
+const confirmAccount = (id: string): Promise<User> => {
+    const getPendingUserQuery = "SELECT email, password_hash, user_id FROM pending_user WHERE id = ?";
+    return client.execute(getPendingUserQuery, [ id ], { prepare: true })
+        .then(result => {
+            if (result.rowLength > 0) {
+                const pendingUser = result.rows[0];
+                return createLocalUser(pendingUser.user_id.toString(), pendingUser.email, pendingUser.password_hash);
+            }
+
+            throw "Pending user not found";
         });
 };
 
@@ -102,4 +155,4 @@ const loginWithLocalCredentials = (email: string, password: string): Promise<Use
         });
 };
 
-export { ensureUser, createLocalUser, loginWithLocalCredentials };
+export { ensureUser, confirmAccount, loginWithLocalCredentials, createPendingUser };

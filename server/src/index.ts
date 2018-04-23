@@ -8,7 +8,7 @@ import { httpJwtValidator, socketJwtValidator, registerIssuer } from "./auth/jwt
 import { googleIssuerKey, GoogleConfig } from "./auth/googleJwt";
 import { localIssuerKey, LocalConfig, issueJwt } from "./auth/localJwt";
 import { validateToken, getTokenDetails } from "./auth/facebookTokenHelper";
-import { ensureUser, createLocalUser, loginWithLocalCredentials } from "./auth/user";
+import { ensureUser, createPendingUser, confirmAccount, loginWithLocalCredentials } from "./auth/user";
 
 const app = express();
 
@@ -36,13 +36,27 @@ app.options("/account/create", (req, res) => {
 app.put("/account/create", (req, res) => {
     const username = req.body.username; // Should be an email
     const password = req.body.password;
-    createLocalUser(username, password)
+    return createPendingUser(username, password)
+        .then(() => {
+            res.sendStatus(200);
+        })
+        .catch(err => {
+            console.log(err);
+            res.sendStatus(500);
+        });
+});
+
+app.get("/account/confirm", (req, res) => {
+    const id = req.query.id;
+    return confirmAccount(id)
         .then(user => {
-            // TODO: email confirmation should probably occur prior to returning jwt.
             const issuedJwt = issueJwt(user);
             res.send({ access_token: issuedJwt, token_type: "bearer" });
         })
-        .catch(console.log);
+        .catch(err => {
+            console.log(err);
+            res.sendStatus(500);
+        });
 });
 
 app.post("/account/reset", (req, res) => {
@@ -50,6 +64,7 @@ app.post("/account/reset", (req, res) => {
 });
 
 app.get("/token", (req, res) => {
+    // TODO: Rate limiting w/ HTTP 429 response
     const grantType = req.query.grant_type;
     if (grantType === "password") {
         const username = req.query.username;
