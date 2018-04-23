@@ -103,3 +103,10 @@ input[type=submit] {
 input[type=submit]:hover {
   background-color: #45a049;
 }
+
+span.error-msg {
+  color: red;
+  display: inline-block;
+  width: 100%;
+  margin: 8px 0;
+}

@@ -12,6 +12,7 @@ interface State {
     invalidEmailMsg?: string;
     password: string;
     invalidPasswordMsg?: string;
+    errorMsg?: string;
 }
 
 // tslint:disable-next-line:no-any
@@ -22,7 +23,7 @@ interface Props extends RouteComponentProps<any> {
 export default class Login extends React.Component<Props, State> {
     constructor(props: Props) {
         super(props);
-        this.state = { email: '', password: '', };
+        this.state = { email: '', password: '' };
     }
 
     handleInputChange = (event: React.FormEvent<HTMLInputElement>) => {
@@ -55,7 +56,6 @@ export default class Login extends React.Component<Props, State> {
     handleValidation = (event: React.FormEvent<HTMLInputElement>) => {
         const target = event.currentTarget;
         const name = target.name;
-        // const value = target.value.trim();
         switch (name) {
             case 'email':
                 if (!this.state.email) {
@@ -90,6 +90,7 @@ export default class Login extends React.Component<Props, State> {
                 <img src={facebookLoginButton} onClick={this.facebookLogin} width="192" />
                 <h3>Username and Password</h3>
                 <form className="signin" onSubmit={this.localLogin}>
+                    {this.state.errorMsg ? <span className="error-msg">{this.state.errorMsg}</span> : ''}
                     <label className={this.state.invalidEmailMsg ? 'invalid' : ''}>
                         Email{this.state.invalidEmailMsg ? ` - ${this.state.invalidEmailMsg}` : ''}
                     </label>
@@ -138,7 +139,8 @@ export default class Login extends React.Component<Props, State> {
         const isValid = !(this.state.invalidEmailMsg || this.state.invalidPasswordMsg);
         
         if (!isValid) {
-            return undefined;
+            this.setState({ errorMsg: 'Please correct errors and try again.' });
+            return Promise.resolve();
         }
         
         return fetch(`//localhost:8443/token` +
@@ -148,11 +150,9 @@ export default class Login extends React.Component<Props, State> {
         .then(r => {
             if (r.status === 200) {
                 return r.json();
-            } else if (r.status === 401) {
-                throw 'unauthorized';
-            } else {
-                throw 'unexpected http status code';
             }
+
+            throw r.status;
         })
         .then(json => {
             const userDetails = JSON.parse(atob(json.access_token.split('.')[1]));
@@ -164,10 +164,12 @@ export default class Login extends React.Component<Props, State> {
                 .then(() => this.props.auth.onSignInResponse(this.props.history));
         })
         .catch(err => {
-            if (err === 'unauthorized') {
-                // TODO: Handle
+            if (err === 401) {
+                this.setState({ errorMsg: 'Invalid credentials, please try again.' });
+            } else if (err === 429) {
+                this.setState({ errorMsg: 'Too many failed attempts, please try again later.' });
             } else {
-                // TODO: Handle
+                this.setState({ errorMsg: 'An unknown error occurred, please try again later.' });
             }
         });
     }

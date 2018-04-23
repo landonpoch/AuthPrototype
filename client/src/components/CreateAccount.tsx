@@ -15,6 +15,7 @@ interface State {
     invalidPasswordMsg?: string;
     confirmation: string;
     invalidConfirmationMsg?: string;
+    errorMsg?: string;
 }
 
 export default class CreateAcocunt extends React.Component<Props, State> {
@@ -78,7 +79,9 @@ export default class CreateAcocunt extends React.Component<Props, State> {
                 }
                 break;
             case 'confirmation':
-                if (this.state.password !== this.state.confirmation) {
+                if (!this.state.confirmation) {
+                    this.setState({invalidConfirmationMsg: 'Password Confirmation is required'});
+                } else if (this.state.password !== this.state.confirmation) {
                     this.setState({invalidConfirmationMsg: 'Passwords must match'});
                 } else {
                     this.setState({invalidConfirmationMsg: undefined});
@@ -91,8 +94,16 @@ export default class CreateAcocunt extends React.Component<Props, State> {
 
     handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
+        const isValid = !(this.state.invalidEmailMsg
+            || this.state.invalidPasswordMsg || this.state.invalidConfirmationMsg);
         
-        fetch('https://localhost:8443/account/create', {
+        if (!isValid) {
+            this.setState({ errorMsg: 'Please correct errors and try again.' });
+            return Promise.resolve();
+        }
+
+        return fetch('https://localhost:8443/account/create', {
             headers: {'Content-Type': 'application/json'},
             method: 'PUT',
             body: JSON.stringify({
@@ -103,11 +114,9 @@ export default class CreateAcocunt extends React.Component<Props, State> {
         .then(r => {
             if (r.status === 200) {
                 return r.json();
-            } else if (r.status === 401) {
-                throw 'unauthorized';
-            } else {
-                throw 'unexpected http status code';
             }
+
+            throw r.status;
         })
         .then(json => {
             const userDetails = JSON.parse(atob(json.access_token.split('.')[1]));
@@ -119,11 +128,7 @@ export default class CreateAcocunt extends React.Component<Props, State> {
                 .then(() => this.props.auth.onSignInResponse(this.props.history));
         })
         .catch(err => {
-            if (err === 'unauthorized') {
-                // TODO: Handle
-            } else {
-                // TODO: Handle
-            }
+            this.setState({ errorMsg: 'An unknown error occurred, please try again later.' });
         });
     }
 
@@ -132,6 +137,7 @@ export default class CreateAcocunt extends React.Component<Props, State> {
             <React.Fragment>
                 <h3>Create Account</h3>
                 <form className="register" onSubmit={this.handleSubmit}>
+                    {this.state.errorMsg ? <span className="error-msg">{this.state.errorMsg}</span> : ''}
                     <label className={this.state.invalidEmailMsg ? 'invalid' : ''}>
                         Email{this.state.invalidEmailMsg ? ` - ${this.state.invalidEmailMsg}` : ''}
                     </label>
@@ -174,13 +180,6 @@ export default class CreateAcocunt extends React.Component<Props, State> {
                     
                     <input type="submit" value="Submit" />
                 </form>
-                {/* <h3>Values</h3>
-                <textarea
-                    readOnly={true}
-                    rows={5}
-                    cols={50}
-                    value={JSON.stringify(this.state, undefined, 4)}
-                /> */}
             </React.Fragment>
         );
     }
