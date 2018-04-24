@@ -17,7 +17,7 @@ export interface User {
 }
 
 const LocalIss = "https://localhost:3000";
-const SaltRounds = 10;
+const SaltRounds = 12;
 
 const client = new Client({ contactPoints: ["localhost"], keyspace: "auth_prototype" });
 
@@ -74,18 +74,21 @@ const createLocalUser = (id: string, email: string, passwordHash: string): Promi
 };
 
 const createPendingUser = (email: string, password: string): Promise<void> => {
-    const id = uuid();
+    const token = uuid(); // node-uuid uses cryptographically strong v4 uuids (122 bits of randomness)
     const getUserIdQuery = "SELECT user_id FROM token_link WHERE iss = ? AND email = ?";
+
+    // TODO: Don't make the UI wait for the email to be sent prior to getting a response
     return client.execute(getUserIdQuery, [ LocalIss, email ], { prepare: true })
         .then(result => result.rowLength > 0 ? Promise.reject("User already exists") : Promise.resolve())
-        .then(() => hash(password, SaltRounds))
-        .then(passwordHash => {
+        .then(() => Promise.all([hash(token, SaltRounds), hash(password, SaltRounds)]))
+        .then(([tokenHash, passwordHash]) => {
             const user_id = uuid();
+            // TODO: See if you can use bcrypt to store hashed token values instead of storing the tokens in the clear
             const createPendingUser =
-                "INSERT INTO pending_user (id, email, password_hash, user_id) VALUES (?, ?, ?, ?) USING TTL 300";
-            return client.execute(createPendingUser, [id, email, passwordHash, user_id], { prepare: true });
+                "INSERT INTO pending_user (email, token_hash, password_hash, user_id) VALUES (?, ?, ?, ?) USING TTL 300";
+            return client.execute(createPendingUser, [email, tokenHash, passwordHash, user_id], { prepare: true });
         })
-        .then(result => createTestAccount())
+        .then(result => createTestAccount()) // TODO: Use a real account
         .then(account => {
             let transporter = createTransport({
                 host: "smtp.ethereal.email",
@@ -101,7 +104,7 @@ const createPendingUser = (email: string, password: string): Promise<void> => {
                 to: email,
                 subject: "Hello ✔",
                 text: "Hello world?",
-                html: `<a href="https://localhost:3000/confirm-account?token=${id}">Confirm your account</a>`
+                html: `<a href="https://localhost:3000/confirm-account?email=${email}&token=${token}">Confirm your account</a>`
             };
             return transporter.sendMail(mailOptions);
         })
@@ -109,20 +112,25 @@ const createPendingUser = (email: string, password: string): Promise<void> => {
             console.log("Message sent: %s", info.messageId);
             // Preview only available when sending through an Ethereal account
             console.log("Preview URL: %s", getTestMessageUrl(info));
-            // Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
-            // Preview URL: https://ethereal.email/message/WaQKMgKddxQDoou...
         });
 };
 
-const confirmAccount = (id: string): Promise<User> => {
-    const getPendingUserQuery = "SELECT email, password_hash, user_id FROM pending_user WHERE id = ?";
-    return client.execute(getPendingUserQuery, [ id ], { prepare: true })
+const confirmAccount = (email: string, token: string): Promise<User> => {
+    const getPendingUserQuery = "SELECT email, token_hash, password_hash, user_id FROM pending_user WHERE email = ?";
+    return client.execute(getPendingUserQuery, [ email ], { prepare: true })
         .then(result => {
             if (result.rowLength > 0) {
                 const pendingUser = result.rows[0];
-                return createLocalUser(pendingUser.user_id.toString(), pendingUser.email, pendingUser.password_hash);
+                return compare(token, pendingUser.token_hash)
+                    .then(isValidToken => {
+                        if (isValidToken)
+                            return createLocalUser(
+                                pendingUser.user_id.toString(),
+                                pendingUser.email,
+                                pendingUser.password_hash);
+                        throw "Invalid token";
+                    });
             }
-
             throw "Pending user not found";
         });
 };

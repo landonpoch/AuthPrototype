@@ -19,6 +19,7 @@ class GoogleConfig implements IssuerConfig {
                 };
                 if (isJwtPayload(decoded)) {
                     if (decoded.aud && decoded.aud !== clientId) throw "Invalid client id";
+                    // TODO: Look into supporting 3rd party refresh tokens
                     if (decoded.exp && (decoded.exp * 1000) < Date.now()) throw "Expired JWT";
                     return decoded;
                 } else {

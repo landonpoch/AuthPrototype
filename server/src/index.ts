@@ -47,8 +47,9 @@ app.put("/account/create", (req, res) => {
 });
 
 app.get("/account/confirm", (req, res) => {
-    const id = req.query.id;
-    return confirmAccount(id)
+    const email = req.query.email;
+    const token = req.query.token;
+    return confirmAccount(email, token)
         .then(user => {
             const issuedJwt = issueJwt(user);
             res.send({ access_token: issuedJwt, token_type: "bearer" });
@@ -60,7 +61,11 @@ app.get("/account/confirm", (req, res) => {
 });
 
 app.post("/account/reset", (req, res) => {
-    // TODO: email reset
+    // TODO: email reset for forgot password scenarios
+});
+
+app.post("/account/change-password", (req, res) => {
+    // TODO: change password for account compromised or just convenience scenarios
 });
 
 app.get("/token", (req, res) => {

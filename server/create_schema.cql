@@ -24,9 +24,9 @@ CREATE TABLE IF NOT EXISTS password_hash (
 );
 
 CREATE TABLE IF NOT EXISTS pending_user (
-    id uuid,
     email text,
+    token_hash text,
     password_hash text,
     user_id uuid,
-    PRIMARY KEY (id)
+    PRIMARY KEY (email)
 );

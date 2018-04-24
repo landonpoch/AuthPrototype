@@ -15,7 +15,7 @@ export default class ConfirmAccount extends React.Component<Props, {}> {
     
     componentDidMount() {
         const params = new URLSearchParams(location.search);
-        fetch(`//localhost:8443/account/confirm?id=${params.get('token')}`)
+        fetch(`//localhost:8443/account/confirm?email=${params.get('email')}&token=${params.get('token')}`)
             .then(r => {
                 if (r.status === 200) {
                     return r.json();
