@@ -8,7 +8,7 @@ import { httpJwtValidator, socketJwtValidator, registerIssuer } from "./auth/jwt
 import { googleIssuerKey, GoogleConfig } from "./auth/googleJwt";
 import { localIssuerKey, LocalConfig, issueJwt } from "./auth/localJwt";
 import { validateToken, getTokenDetails } from "./auth/facebookTokenHelper";
-import { ensureUser, createPendingUser, confirmAccount, loginWithLocalCredentials } from "./auth/user";
+import { ensureUser, createPendingUser, confirmAccount, loginWithLocalCredentials, beginPasswordReset } from "./auth/user";
 
 const app = express();
 
@@ -60,8 +60,37 @@ app.get("/account/confirm", (req, res) => {
         });
 });
 
+app.options("/account/reset", (req, res) => {
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Access-Control-Allow-Methods", "POST");
+    res.sendStatus(200);
+});
+
 app.post("/account/reset", (req, res) => {
     // TODO: email reset for forgot password scenarios
+    beginPasswordReset(req.body.email)
+        .then(() => {
+            res.send({});
+        })
+        .catch(err => {
+            console.log(err);
+            res.sendStatus(500);
+        });
+});
+
+// TODO: come up with better names for these endpoints
+app.options("/account/confirm-reset", (req, res) => {
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Access-Control-Allow-Methods", "POST");
+    res.sendStatus(200);
+});
+
+app.options("/account/confirm-reset", (req, res) => {
+    // TODO: take in the new credentials and the reset token and update the password
+    const email = req.body.email;
+    const token = req.body.token;
+    const password = req.body.password; // this is the new password being requested
+    res.send({});
 });
 
 app.post("/account/change-password", (req, res) => {

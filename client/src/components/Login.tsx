@@ -139,7 +139,8 @@ export default class Login extends React.Component<Props, State> {
                     />
                     <input type="submit" value="Submit" />
                 </form>
-                <span>Don't have an account? <Link to="/create-account">Sign Up</Link></span>
+                <p>Don't have an account? <Link to="/create-account">Sign Up</Link></p>
+                <p>Forgot password? <Link to="/forgot-password">Click here</Link></p>
             </React.Fragment>
         );
     }

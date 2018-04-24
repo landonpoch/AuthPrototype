@@ -54,7 +54,6 @@ const ensureUser = (token: Token): Promise<User> => {
 };
 
 const createLocalUser = (id: string, email: string, passwordHash: string): Promise<User> => {
-    console.log(`createLocalUser - id: ${id} email: ${email} passwordHash: ${passwordHash}`);
     const getUserIdQuery = "SELECT user_id FROM token_link WHERE iss = ? AND email = ?";
     return client.execute(getUserIdQuery, [ LocalIss, email ], { prepare: true })
         .then(result => {
@@ -163,4 +162,51 @@ const loginWithLocalCredentials = (email: string, password: string): Promise<Use
         });
 };
 
-export { ensureUser, confirmAccount, loginWithLocalCredentials, createPendingUser };
+const beginPasswordReset = (email: string): Promise<void> => {
+    const token = uuid();
+    const getUserId = "SELECT user_id FROM token_link WHERE iss = ? AND email = ?";
+    return client.execute(getUserId, [ LocalIss, email ], { prepare: true })
+        .then(result => {
+            if (result.rowLength > 0) {
+                const user_id = result.rows[0].user_id;
+                return hash(token, 12)
+                    .then(tokenHash => {
+                        const createResetRequest = "INSERT INTO reset_password (email, token_hash, user_id) VALUES (?, ?, ?) USING TTL 300";
+                        return client.execute(createResetRequest, [ email, tokenHash, user_id ], { prepare: true });
+                    });
+            }
+            throw "Invalid email";
+        })
+        .then(result => createTestAccount()) // TODO: Use a real account
+        .then(account => {
+            let transporter = createTransport({
+                host: "smtp.ethereal.email",
+                port: 587,
+                secure: false,
+                auth: {
+                    user: account.user,
+                    pass: account.pass
+                }
+            });
+            let mailOptions = {
+                from: `"Fred Foo 👻" <foo@example.com>`,
+                to: email,
+                subject: "Hello ✔",
+                text: "Hello world?",
+                html: `<a href="https://localhost:3000/reset-password?email=${email}&token=${token}">Reset your password</a>`
+            };
+            return transporter.sendMail(mailOptions);
+        })
+        .then(info => {
+            console.log("Message sent: %s", info.messageId);
+            // Preview only available when sending through an Ethereal account
+            console.log("Preview URL: %s", getTestMessageUrl(info));
+        });
+};
+
+const confirmPasswordReset = (email: string, token: string, password: string): Promise<void> => {
+    // TODO: Implement
+    throw new Error("not implemented");
+};
+
+export { ensureUser, confirmAccount, loginWithLocalCredentials, createPendingUser, beginPasswordReset };

@@ -62,7 +62,7 @@
   to { transform: rotate(360deg); }
 }
 
-form.register, form.signin {
+form.register, form.signin, form.reset {
   margin: auto;
   text-align: left;
   width: 500px;

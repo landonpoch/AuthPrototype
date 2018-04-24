@@ -30,3 +30,10 @@ CREATE TABLE IF NOT EXISTS pending_user (
     user_id uuid,
     PRIMARY KEY (email)
 );
+
+CREATE TABLE IF NOT EXISTS reset_password (
+    email text,
+    token_hash text,
+    user_id uuid, /* TODO: This field might not be needed. */
+    PRIMARY KEY (email)
+);

@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Route, NavLink } from 'react-router-dom';
 import Home from './components/Home';
 import CreateAccount from './components/CreateAccount';
 import ConfirmAccount from './components/ConfirmAccount';
+import ForgotPassword from './components/ForgotPassword';
+import ResetPassword from './components/ResetPassword';
 import UserState from './components/UserState';
 import Login from './components/Login';
 import SigninHandler from './components/SigninHandler';
@@ -67,6 +69,8 @@ export default class App extends React.Component<Props, State> {
                             path="/confirm-account"
                             render={props => <ConfirmAccount auth={this.props.auth} {...props} />}
                         />
+                        <Route path="/forgot-password" component={ForgotPassword} />
+                        <Route path="/reset-password" component={ResetPassword} />
                         <PrivateRoute path="/protected" auth={this.props.auth} component={Protected} />
                         <Route path="/login" render={props => <Login auth={this.props.auth} {...props} />} />
                         <Route
