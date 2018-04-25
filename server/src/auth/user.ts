@@ -230,11 +230,34 @@ const confirmPasswordReset = (email: string, token: string, password: string): P
         .then(result => undefined);
 };
 
+const changePassword = (email: string, currentPassword: string, proposedPassword: string): Promise<void> => {
+    const getPasswordHashQuery = "SELECT password_hash FROM password_hash WHERE email = ?";
+    return client.execute(getPasswordHashQuery, [ email ], { prepare: true })
+        .then(result => {
+            if (result.rowLength > 0) {
+                return compare(currentPassword, result.rows[0].password_hash);
+            }
+            throw "Invalid email";
+        })
+        .then(match => {
+            if (match) {
+                return hash(proposedPassword, SaltRounds);
+            }
+            throw "Invalid password";
+        })
+        .then(proposedPasswordHash => {
+            const changePasswordQuery = "UPDATE password_hash SET password_hash = ? WEHRE email = ?";
+            return client.execute(changePasswordQuery, [ proposedPasswordHash, email ], { prepare: true });
+        })
+        .then(result => undefined);
+};
+
 export {
     ensureUser,
     confirmAccount,
     loginWithLocalCredentials,
     createPendingUser,
     beginPasswordReset,
-    confirmPasswordReset
+    confirmPasswordReset,
+    changePassword
 };

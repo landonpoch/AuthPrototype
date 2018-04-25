@@ -14,7 +14,8 @@ import {
     confirmAccount,
     loginWithLocalCredentials,
     beginPasswordReset,
-    confirmPasswordReset
+    confirmPasswordReset,
+    changePassword
 } from "./auth/user";
 
 const app = express();
@@ -106,8 +107,24 @@ app.post("/account/confirm-reset", (req, res) => {
         });
 });
 
+app.options("/account/change-password", (req, res) => {
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Access-Control-Allow-Methods", "POST");
+    res.sendStatus(200);
+});
+
 app.post("/account/change-password", (req, res) => {
-    // TODO: change password for account compromised or just convenience scenarios
+    const email = req.body.email;
+    const currentPassword = req.body.password;
+    const proposedPassword = req.body.new_password;
+    changePassword(email, currentPassword, proposedPassword)
+        .then(() => {
+            res.send({});
+        })
+        .catch(err => {
+            console.log(err);
+            res.sendStatus(500);
+        });
 });
 
 app.get("/token", (req, res) => {
