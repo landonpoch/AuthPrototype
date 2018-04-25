@@ -64,7 +64,7 @@ export default class ForgotPassword extends React.Component<{}, State> {
         return (
             <React.Fragment>
                 <h3>Forgot Password</h3>
-                <form className="reset" onSubmit={this.resetPassword}>
+                <form className="forgot" onSubmit={this.resetPassword}>
                     {this.state.errorMsg ? <span className="error-msg">{this.state.errorMsg}</span> : ''}
                     <label className={this.state.invalidEmailMsg ? 'invalid' : ''}>
                         Email{this.state.invalidEmailMsg ? ` - ${this.state.invalidEmailMsg}` : ''}

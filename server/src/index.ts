@@ -8,7 +8,14 @@ import { httpJwtValidator, socketJwtValidator, registerIssuer } from "./auth/jwt
 import { googleIssuerKey, GoogleConfig } from "./auth/googleJwt";
 import { localIssuerKey, LocalConfig, issueJwt } from "./auth/localJwt";
 import { validateToken, getTokenDetails } from "./auth/facebookTokenHelper";
-import { ensureUser, createPendingUser, confirmAccount, loginWithLocalCredentials, beginPasswordReset } from "./auth/user";
+import {
+    ensureUser,
+    createPendingUser,
+    confirmAccount,
+    loginWithLocalCredentials,
+    beginPasswordReset,
+    confirmPasswordReset
+} from "./auth/user";
 
 const app = express();
 
@@ -85,12 +92,18 @@ app.options("/account/confirm-reset", (req, res) => {
     res.sendStatus(200);
 });
 
-app.options("/account/confirm-reset", (req, res) => {
-    // TODO: take in the new credentials and the reset token and update the password
+app.post("/account/confirm-reset", (req, res) => {
     const email = req.body.email;
     const token = req.body.token;
     const password = req.body.password; // this is the new password being requested
-    res.send({});
+    confirmPasswordReset(email, token, password)
+        .then(() => {
+            res.send({});
+        })
+        .catch(err => {
+            console.log(err);
+            res.sendStatus(500);
+        });
 });
 
 app.post("/account/change-password", (req, res) => {

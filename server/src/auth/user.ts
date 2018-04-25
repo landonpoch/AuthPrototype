@@ -171,8 +171,9 @@ const beginPasswordReset = (email: string): Promise<void> => {
                 const user_id = result.rows[0].user_id;
                 return hash(token, 12)
                     .then(tokenHash => {
-                        const createResetRequest = "INSERT INTO reset_password (email, token_hash, user_id) VALUES (?, ?, ?) USING TTL 300";
-                        return client.execute(createResetRequest, [ email, tokenHash, user_id ], { prepare: true });
+                        // TODO: support upsert or delete record on confirmation to handle back to back forgots?
+                        const createResetRequest = "INSERT INTO reset_password (email, token_hash) VALUES (?, ?) USING TTL 300";
+                        return client.execute(createResetRequest, [ email, tokenHash ], { prepare: true });
                     });
             }
             throw "Invalid email";
@@ -205,8 +206,35 @@ const beginPasswordReset = (email: string): Promise<void> => {
 };
 
 const confirmPasswordReset = (email: string, token: string, password: string): Promise<void> => {
-    // TODO: Implement
-    throw new Error("not implemented");
+    const confirmResetQuery = "SELECT email, token_hash FROM reset_password WHERE email = ?";
+    return client.execute(confirmResetQuery, [ email ], { prepare: true })
+        .then(result => {
+            if (result.rowLength > 0) {
+                return compare(token, result.rows[0].token_hash);
+            }
+
+            throw "Invalid account to reset.";
+        })
+        .then(match => {
+            if (match) {
+                return hash(password, SaltRounds);
+            }
+
+            throw "Invalid reset token.";
+        })
+        .then(hashedPassword => {
+            // TODO: support upsert or delete record on confirmation to handle back to back forgots?
+            const resetPasswordQuery = "UPDATE password_hash SET password_hash = ? WHERE email = ?";
+            return client.execute(resetPasswordQuery, [ hashedPassword, email ], { prepare: true });
+        })
+        .then(result => undefined);
 };
 
-export { ensureUser, confirmAccount, loginWithLocalCredentials, createPendingUser, beginPasswordReset };
+export {
+    ensureUser,
+    confirmAccount,
+    loginWithLocalCredentials,
+    createPendingUser,
+    beginPasswordReset,
+    confirmPasswordReset
+};
