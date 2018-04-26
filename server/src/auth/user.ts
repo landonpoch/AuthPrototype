@@ -246,7 +246,7 @@ const changePassword = (email: string, currentPassword: string, proposedPassword
             throw "Invalid password";
         })
         .then(proposedPasswordHash => {
-            const changePasswordQuery = "UPDATE password_hash SET password_hash = ? WEHRE email = ?";
+            const changePasswordQuery = "UPDATE password_hash SET password_hash = ? WHERE email = ?";
             return client.execute(changePasswordQuery, [ proposedPasswordHash, email ], { prepare: true });
         })
         .then(result => undefined);

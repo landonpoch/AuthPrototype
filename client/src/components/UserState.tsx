@@ -1,6 +1,6 @@
 import * as React from 'react';
 import AuthHelper from '../helpers/auth';
-import { NavLink, RouteComponentProps, withRouter } from 'react-router-dom';
+import { NavLink, RouteComponentProps, withRouter, Link } from 'react-router-dom';
 
 // tslint:disable-next-line:no-any
 interface Props extends RouteComponentProps<any> {
@@ -30,7 +30,7 @@ class UserState extends React.Component<Props, State> {
             this.state.isAuthenticated ?
                 (
                     <span>
-                        <span>{this.props.auth.getDisplayName()}</span>
+                        <span><Link to="/change-password">{this.props.auth.getDisplayName()}</Link></span>
                         <a href="javascript:;" onClick={this.signOut}>Logout</a>
                     </span>
                 ) :

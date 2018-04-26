@@ -15,7 +15,8 @@ import {
     loginWithLocalCredentials,
     beginPasswordReset,
     confirmPasswordReset,
-    changePassword
+    changePassword,
+    User
 } from "./auth/user";
 
 const app = express();
@@ -29,6 +30,7 @@ app.use("/", (req, res, next) => {
 });
 // Protect everything under the /token path
 app.use("/api", httpJwtValidator);
+app.use("/account/change-password", httpJwtValidator);
 
 app.get("/", (req, res) => {
     res.send("hello world");
@@ -108,16 +110,16 @@ app.post("/account/confirm-reset", (req, res) => {
 });
 
 app.options("/account/change-password", (req, res) => {
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Access-Control-Allow-Headers", "authorization,Content-Type");
     res.setHeader("Access-Control-Allow-Methods", "POST");
     res.sendStatus(200);
 });
 
 app.post("/account/change-password", (req, res) => {
-    const email = req.body.email;
+    const user: User = req.user;
     const currentPassword = req.body.password;
     const proposedPassword = req.body.new_password;
-    changePassword(email, currentPassword, proposedPassword)
+    changePassword(user.email, currentPassword, proposedPassword)
         .then(() => {
             res.send({});
         })
