@@ -82,7 +82,6 @@ const createPendingUser = (email: string, password: string): Promise<void> => {
         .then(() => Promise.all([hash(token, SaltRounds), hash(password, SaltRounds)]))
         .then(([tokenHash, passwordHash]) => {
             const user_id = uuid();
-            // TODO: See if you can use bcrypt to store hashed token values instead of storing the tokens in the clear
             const createPendingUser =
                 "INSERT INTO pending_user (email, token_hash, password_hash, user_id) VALUES (?, ?, ?, ?) USING TTL 300";
             return client.execute(createPendingUser, [email, tokenHash, passwordHash, user_id], { prepare: true });

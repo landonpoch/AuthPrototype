@@ -18,8 +18,11 @@ import {
     changePassword,
     User
 } from "./auth/user";
+import RateLimiter from "express-rate-limit";
 
 const app = express();
+const limiter = new RateLimiter({}); // Just use defaults
+app.use("/token", limiter);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -33,7 +36,7 @@ app.use("/api", httpJwtValidator);
 app.use("/account/change-password", httpJwtValidator);
 
 app.get("/", (req, res) => {
-    res.send("hello world");
+    res.sendStatus(200); // could be used for health checks
 });
 
 app.options("/account/create", (req, res) => {
@@ -77,7 +80,6 @@ app.options("/account/reset", (req, res) => {
 });
 
 app.post("/account/reset", (req, res) => {
-    // TODO: email reset for forgot password scenarios
     beginPasswordReset(req.body.email)
         .then(() => {
             res.send({});
@@ -89,6 +91,17 @@ app.post("/account/reset", (req, res) => {
 });
 
 // TODO: come up with better names for these endpoints
+/*
+Proposed endpoints:
+/account/create
+/account/verify
+/account/token
+/account/change-password
+/account/forgot-password
+/account/reset-password
+
+Default rate limiting on the account endpoints is probably fine
+*/
 app.options("/account/confirm-reset", (req, res) => {
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     res.setHeader("Access-Control-Allow-Methods", "POST");
