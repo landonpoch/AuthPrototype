@@ -20,8 +20,8 @@ class LocalConfig implements IssuerConfig {
 }
 
 const issueJwt = (user: User): string => {
-    // TODO: consider expiration of locally issued jwts
-    // TODO: consider aud verification of locally issued jwts
+    // TODO: consider expiration of locally issued jwts (exp)
+    // TODO: consider aud verification of locally issued jwts (aud)
     const jwtPayload: LocalJwtPayload = {
         iss: localIssuerKey,
         sub: user.id,

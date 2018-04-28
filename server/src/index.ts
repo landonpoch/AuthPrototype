@@ -6,183 +6,33 @@ import express from "express";
 import bodyParser from "body-parser";
 import { httpJwtValidator, socketJwtValidator, registerIssuer } from "./auth/jwtHelper";
 import { googleIssuerKey, GoogleConfig } from "./auth/googleJwt";
-import { localIssuerKey, LocalConfig, issueJwt } from "./auth/localJwt";
-import { validateToken, getTokenDetails } from "./auth/facebookTokenHelper";
-import {
-    ensureUser,
-    createPendingUser,
-    confirmAccount,
-    loginWithLocalCredentials,
-    beginPasswordReset,
-    confirmPasswordReset,
-    changePassword,
-    User
-} from "./auth/user";
-import RateLimiter from "express-rate-limit";
+import { localIssuerKey, LocalConfig } from "./auth/localJwt";
+import createAccountRoutes from "./account";
 
 const app = express();
-const limiter = new RateLimiter({}); // Just use defaults
-app.use("/token", limiter);
-
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-app.use("/", (req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "https://localhost:3000");
-    next();
-});
-// Protect everything under the /token path
-app.use("/api", httpJwtValidator);
-app.use("/account/change-password", httpJwtValidator);
-
-app.get("/", (req, res) => {
-    res.sendStatus(200); // could be used for health checks
-});
-
-app.options("/account/create", (req, res) => {
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    res.setHeader("Access-Control-Allow-Methods", "PUT");
-    res.sendStatus(200);
-});
-
-// https://hackernoon.com/your-node-js-authentication-tutorial-is-wrong-f1a3bf831a46
-app.put("/account/create", (req, res) => {
-    const username = req.body.username; // Should be an email
-    const password = req.body.password;
-    return createPendingUser(username, password)
-        .then(() => {
-            res.sendStatus(200);
-        })
-        .catch(err => {
-            console.log(err);
-            res.sendStatus(500);
-        });
-});
-
-app.get("/account/confirm", (req, res) => {
-    const email = req.query.email;
-    const token = req.query.token;
-    return confirmAccount(email, token)
-        .then(user => {
-            const issuedJwt = issueJwt(user);
-            res.send({ access_token: issuedJwt, token_type: "bearer" });
-        })
-        .catch(err => {
-            console.log(err);
-            res.sendStatus(500);
-        });
-});
-
-app.options("/account/reset", (req, res) => {
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    res.setHeader("Access-Control-Allow-Methods", "POST");
-    res.sendStatus(200);
-});
-
-app.post("/account/reset", (req, res) => {
-    beginPasswordReset(req.body.email)
-        .then(() => {
-            res.send({});
-        })
-        .catch(err => {
-            console.log(err);
-            res.sendStatus(500);
-        });
-});
-
-// TODO: come up with better names for these endpoints
-/*
-Proposed endpoints:
-/account/create
-/account/verify
-/account/token
-/account/change-password
-/account/forgot-password
-/account/reset-password
-
-Default rate limiting on the account endpoints is probably fine
-*/
-app.options("/account/confirm-reset", (req, res) => {
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    res.setHeader("Access-Control-Allow-Methods", "POST");
-    res.sendStatus(200);
-});
-
-app.post("/account/confirm-reset", (req, res) => {
-    const email = req.body.email;
-    const token = req.body.token;
-    const password = req.body.password; // this is the new password being requested
-    confirmPasswordReset(email, token, password)
-        .then(() => {
-            res.send({});
-        })
-        .catch(err => {
-            console.log(err);
-            res.sendStatus(500);
-        });
-});
-
-app.options("/account/change-password", (req, res) => {
-    res.setHeader("Access-Control-Allow-Headers", "authorization,Content-Type");
-    res.setHeader("Access-Control-Allow-Methods", "POST");
-    res.sendStatus(200);
-});
-
-app.post("/account/change-password", (req, res) => {
-    const user: User = req.user;
-    const currentPassword = req.body.password;
-    const proposedPassword = req.body.new_password;
-    changePassword(user.email, currentPassword, proposedPassword)
-        .then(() => {
-            res.send({});
-        })
-        .catch(err => {
-            console.log(err);
-            res.sendStatus(500);
-        });
-});
-
-app.get("/token", (req, res) => {
-    // TODO: Rate limiting w/ HTTP 429 response
-    const grantType = req.query.grant_type;
-    if (grantType === "password") {
-        const username = req.query.username;
-        const password = req.query.password;
-        loginWithLocalCredentials(username, password)
-            .then(user => {
-                const issuedJwt = issueJwt(user);
-                res.send({ access_token: issuedJwt, token_type: "bearer" });
-            })
-            .catch((err: any) => {
-                if (err === "Invalid username" || err === "Invalid password") {
-                    res.sendStatus(401);
-                } else {
-                    res.sendStatus(500);
-                }
-            });
-    } else if (grantType === "facebook_access_token") {
-        validateToken(req.query.client_id, req.query.facebook_access_token)
-            .then(() => getTokenDetails(req.query.facebook_access_token))
-            .then(ensureUser)
-            .then(user => {
-                const issuedJwt = issueJwt(user);
-                res.send({ access_token: issuedJwt, token_type: "bearer" });
-            })
-            .catch((err: any) => {
-                console.log(err);
-                res.sendStatus(500);
-            });
+app.use(
+    bodyParser.json(),
+    bodyParser.urlencoded({ extended: true }),
+    (req, res, next) => {
+        res.setHeader("Access-Control-Allow-Origin", "https://localhost:3000");
+        res.setHeader("Access-Control-Allow-Headers", "authorization,Content-Type");
+        res.setHeader("Access-Control-Allow-Methods", "POST,PUT");
+        next();
     }
-});
+);
 
+// could be used for health checks
+app.get("/", (req, res) => { res.sendStatus(200); });
+
+createAccountRoutes(app);
+
+// Protect everything under the /api path
+app.use("/api", httpJwtValidator);
 app.options("/api/test", (req, res) => {
     res.setHeader("Access-Control-Allow-Headers", "authorization");
     res.sendStatus(200);
 });
-
-app.get("/api/test", (req, res) => {
-    res.send("Protected resource reached.");
-});
+app.get("/api/test", (req, res) => { res.send("Protected resource reached."); });
 
 registerIssuer(googleIssuerKey, new GoogleConfig());
 registerIssuer(localIssuerKey, new LocalConfig());

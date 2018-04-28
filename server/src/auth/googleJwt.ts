@@ -20,6 +20,8 @@ class GoogleConfig implements IssuerConfig {
                 if (isJwtPayload(decoded)) {
                     if (decoded.aud && decoded.aud !== clientId) throw "Invalid client id";
                     // TODO: Look into supporting 3rd party refresh tokens
+                    // Looks like the client should just perform "silent authentication" for
+                    // both facebook and google authentication scenarios
                     if (decoded.exp && (decoded.exp * 1000) < Date.now()) throw "Expired JWT";
                     return decoded;
                 } else {

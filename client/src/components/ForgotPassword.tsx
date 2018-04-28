@@ -92,7 +92,7 @@ export default class ForgotPassword extends React.Component<{}, State> {
             return Promise.resolve();
         }
 
-        return fetch('//localhost:8443/account/reset', {
+        return fetch('//localhost:8443/account/forgot-password', {
             headers: {'Content-Type': 'application/json'},
             method: 'POST',
             body: JSON.stringify({ email: this.state.email }),

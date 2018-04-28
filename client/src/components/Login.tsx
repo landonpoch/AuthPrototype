@@ -163,7 +163,7 @@ export default class Login extends React.Component<Props, State> {
             return Promise.resolve();
         }
         
-        return fetch(`//localhost:8443/token` +
+        return fetch(`//localhost:8443/account/token` +
             `?grant_type=password` +
             `&username=${this.state.email}` +
             `&password=${this.state.password}`)

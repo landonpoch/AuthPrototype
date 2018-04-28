@@ -15,24 +15,31 @@ export default class ConfirmAccount extends React.Component<Props, {}> {
     
     componentDidMount() {
         const params = new URLSearchParams(location.search);
-        fetch(`//localhost:8443/account/confirm?email=${params.get('email')}&token=${params.get('token')}`)
-            .then(r => {
-                if (r.status === 200) {
-                    return r.json();
-                }
+        fetch('//localhost:8443/account/verify', {
+            headers: {'Content-Type': 'application/json'},
+            method: 'PUT',
+            body: JSON.stringify({
+                email: params.get('email'),
+                token: params.get('token'),
+            }),
+        })
+        .then(r => {
+            if (r.status === 200) {
+                return r.json();
+            }
 
-                throw r.status;
-            })
-            .then(json => {
-                const userDetails = JSON.parse(atob(json.access_token.split('.')[1]));
-                const user = { displayName: userDetails.name, email: userDetails.email, idToken: json.access_token, };
-                sessionStorage.setItem('LocalUser', JSON.stringify(user));
-                // TODO: look into disabling the redirect for account confirmations
-                const redirectUrl: string = this.props.location
-                    && this.props.location.state && this.props.location.state.from;
-                return this.props.auth.onCreateSignInRequest(AuthProvider.Local, redirectUrl)
-                    .then(() => this.props.auth.onSignInResponse(this.props.history));
-            });
+            throw r.status;
+        })
+        .then(json => {
+            const userDetails = JSON.parse(atob(json.access_token.split('.')[1]));
+            const user = { displayName: userDetails.name, email: userDetails.email, idToken: json.access_token, };
+            sessionStorage.setItem('LocalUser', JSON.stringify(user));
+            // TODO: look into disabling the redirect for account confirmations
+            const redirectUrl: string = this.props.location
+                && this.props.location.state && this.props.location.state.from;
+            return this.props.auth.onCreateSignInRequest(AuthProvider.Local, redirectUrl)
+                .then(() => this.props.auth.onSignInResponse(this.props.history));
+        });
     }
     
     render() {

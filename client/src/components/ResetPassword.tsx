@@ -94,7 +94,7 @@ export default class ResetPassword extends React.Component<{}, State> {
         }
 
         const params = new URLSearchParams(location.search);
-        return fetch('https://localhost:8443/account/confirm-reset', {
+        return fetch('//localhost:8443/account/reset-password', {
             headers: {'Content-Type': 'application/json'},
             method: 'POST',
             body: JSON.stringify({

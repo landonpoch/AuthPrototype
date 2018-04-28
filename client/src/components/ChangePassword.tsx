@@ -124,7 +124,7 @@ export default class ChangePassword extends React.Component<Props, State> {
             return Promise.resolve();
         }
 
-        return fetch('https://localhost:8443/account/change-password', {
+        return fetch('//localhost:8443/account/change-password', {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${this.props.token}`

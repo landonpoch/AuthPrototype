@@ -129,7 +129,7 @@ export default class CreateAcocunt extends React.Component<Props, State> {
             return Promise.resolve();
         }
 
-        return fetch('https://localhost:8443/account/create', {
+        return fetch('//localhost:8443/account/create', {
             headers: {'Content-Type': 'application/json'},
             method: 'PUT',
             body: JSON.stringify({

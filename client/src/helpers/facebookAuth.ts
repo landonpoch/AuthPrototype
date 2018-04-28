@@ -51,7 +51,7 @@ export default class FacebookAuth implements IAuthHelper {
             return Promise.reject('State validation failed. Not authenticated');
         }
 
-        return fetch(`//localhost:8443/token` +
+        return fetch(`//localhost:8443/account/token` +
             `?grant_type=facebook_access_token` +
             `&client_id=${FacebookAuth.FacebookAppId}` +
             `&facebook_access_token=${params.accessToken}`)
