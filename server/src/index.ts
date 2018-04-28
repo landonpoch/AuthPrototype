@@ -28,10 +28,6 @@ createAccountRoutes(app);
 
 // Protect everything under the /api path
 app.use("/api", httpJwtValidator);
-app.options("/api/test", (req, res) => {
-    res.setHeader("Access-Control-Allow-Headers", "authorization");
-    res.sendStatus(200);
-});
 app.get("/api/test", (req, res) => { res.send("Protected resource reached."); });
 
 registerIssuer(googleIssuerKey, new GoogleConfig());

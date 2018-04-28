@@ -1,7 +1,8 @@
 import { v4 as uuid } from "uuid";
 import { Client } from "cassandra-driver";
 import { hash, compare } from "bcrypt";
-import { createTestAccount, createTransport, getTestMessageUrl } from "nodemailer";
+import { createTransport } from "nodemailer";
+import secrets from "../../secrets.json";
 
 export interface Token {
     iss: string;
@@ -86,17 +87,9 @@ const createPendingUser = (email: string, password: string): Promise<void> => {
                 "INSERT INTO pending_user (email, token_hash, password_hash, user_id) VALUES (?, ?, ?, ?) USING TTL 300";
             return client.execute(createPendingUser, [email, tokenHash, passwordHash, user_id], { prepare: true });
         })
-        .then(result => createTestAccount()) // TODO: Use a real account
-        .then(account => {
-            let transporter = createTransport({
-                host: "smtp.ethereal.email",
-                port: 587,
-                secure: false,
-                auth: {
-                    user: account.user,
-                    pass: account.pass
-                }
-            });
+        .then(result => {
+            let transporter = createTransport(secrets.smtp);
+            // TODO: Figure out an acceptable template
             let mailOptions = {
                 from: `"Fred Foo 👻" <foo@example.com>`,
                 to: email,
@@ -106,11 +99,7 @@ const createPendingUser = (email: string, password: string): Promise<void> => {
             };
             return transporter.sendMail(mailOptions);
         })
-        .then(info => {
-            console.log("Message sent: %s", info.messageId);
-            // Preview only available when sending through an Ethereal account
-            console.log("Preview URL: %s", getTestMessageUrl(info));
-        });
+        .then(info => { console.log("Message sent: %s", info.messageId); });
 };
 
 const confirmAccount = (email: string, token: string): Promise<User> => {
@@ -177,17 +166,9 @@ const beginPasswordReset = (email: string): Promise<void> => {
             }
             throw "Invalid email";
         })
-        .then(result => createTestAccount()) // TODO: Use a real account
-        .then(account => {
-            let transporter = createTransport({
-                host: "smtp.ethereal.email",
-                port: 587,
-                secure: false,
-                auth: {
-                    user: account.user,
-                    pass: account.pass
-                }
-            });
+        .then(result => {
+            let transporter = createTransport(secrets.smtp);
+            // TODO: Figure out an acceptable template
             let mailOptions = {
                 from: `"Fred Foo 👻" <foo@example.com>`,
                 to: email,
@@ -197,11 +178,7 @@ const beginPasswordReset = (email: string): Promise<void> => {
             };
             return transporter.sendMail(mailOptions);
         })
-        .then(info => {
-            console.log("Message sent: %s", info.messageId);
-            // Preview only available when sending through an Ethereal account
-            console.log("Preview URL: %s", getTestMessageUrl(info));
-        });
+        .then(info => { console.log("Message sent: %s", info.messageId); });
 };
 
 const confirmPasswordReset = (email: string, token: string, password: string): Promise<void> => {
